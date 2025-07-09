@@ -4,7 +4,7 @@ import os
 import tempfile
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 import ffmpeg
 from openai import OpenAI
 
@@ -210,7 +210,7 @@ class WhisperClient:
             except Exception as e:
                 last_exception = e
 
-                if hasattr(e, "status_code") and e.status_code == 429:
+                if hasattr(e, "status_code") and getattr(e, "status_code") == 429:
                     retry_after = getattr(e, "retry_after", 60)
                     if attempt < max_retries - 1:
                         time.sleep(retry_after)
