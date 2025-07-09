@@ -179,3 +179,4 @@ cython_debug/
 input/*.mp4
 output/*.txt
 output/*.srt
+intermediate/*.mp3

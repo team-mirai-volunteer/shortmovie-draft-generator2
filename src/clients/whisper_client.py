@@ -90,7 +90,8 @@ class WhisperClient:
             self.temp_dir = Path(temp_dir)
             self.temp_dir.mkdir(parents=True, exist_ok=True)
         else:
-            self.temp_dir = Path(tempfile.gettempdir()) / "whisper_client"
+            # プロジェクトルートのintermediateディレクトリを使用
+            self.temp_dir = Path("intermediate")
             self.temp_dir.mkdir(parents=True, exist_ok=True)
 
     def transcribe(self, video_path: str) -> TranscriptionResult:
@@ -118,8 +119,10 @@ class WhisperClient:
             return self._convert_to_transcription_result(response_data)
 
         finally:
-            if audio_path:
-                self._cleanup_temp_files(audio_path)
+            # デバッグのため、音声ファイルは削除しない
+            # if audio_path:
+            #     self._cleanup_temp_files(audio_path)
+            pass
 
     def _validate_video_file(self, video_path: str) -> None:
         """動画ファイルの妥当性チェック"""
@@ -152,11 +155,16 @@ class WhisperClient:
         """
         try:
             video_name = Path(video_path).stem
-            audio_path = self.temp_dir / f"{video_name}_audio.wav"
+            audio_path = self.temp_dir / f"{video_name}_audio.mp3"
 
+            print(f"DEBUG: 動画ファイル: {video_path}")
+            print(f"DEBUG: 動画ファイルサイズ: {os.path.getsize(video_path) / 1024 / 1024:.1f}MB")
+            print(f"DEBUG: 音声抽出先: {audio_path}")
+
+            # MP3形式で抽出（64kbps、モノラル、16kHz）
             (
                 ffmpeg.input(video_path)
-                .output(str(audio_path), acodec="pcm_s16le", ac=1, ar=16000)
+                .output(str(audio_path), acodec="mp3", ac=1, ar=16000, audio_bitrate="64k")
                 .overwrite_output()
                 .run(capture_stdout=True, capture_stderr=True)
             )
@@ -164,6 +172,17 @@ class WhisperClient:
             if not audio_path.exists():
                 raise AudioExtractionError(
                     f"音声ファイルの生成に失敗しました: {audio_path}", video_path
+                )
+
+            audio_size = os.path.getsize(str(audio_path))
+            print(f"DEBUG: 抽出された音声ファイルサイズ: {audio_size / 1024 / 1024:.1f}MB")
+
+            # Whisper APIの制限チェック（25MB）
+            max_size = 25 * 1024 * 1024
+            if audio_size > max_size:
+                raise AudioExtractionError(
+                    f"抽出された音声ファイルがWhisper APIの制限を超えています: {audio_size / 1024 / 1024:.1f}MB > 25MB",
+                    video_path
                 )
 
             return str(audio_path)
