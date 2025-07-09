@@ -6,11 +6,11 @@ from pathlib import Path
 import click
 from dotenv import load_dotenv
 
-from .clients.whisper_client import WhisperClient
-from .clients.chatgpt_client import ChatGPTClient
-from .builders.prompt_builder import PromptBuilder
-from .service.draft_generator import DraftGenerator
-from .usecases.generate_short_draft_usecase import GenerateShortDraftUsecase
+from src.clients.whisper_client import WhisperClient
+from src.clients.chatgpt_client import ChatGPTClient
+from src.builders.prompt_builder import PromptBuilder
+from src.service.draft_generator import DraftGenerator
+from src.usecases.generate_short_draft_usecase import GenerateShortDraftUsecase
 
 
 class DIContainer:

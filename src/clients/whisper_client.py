@@ -128,10 +128,10 @@ class WhisperClient:
 
         file_size = os.path.getsize(video_path)
         max_size = 25 * 1024 * 1024
-        if file_size > max_size:
-            raise ValidationError(
-                f"ファイルサイズが制限を超えています: {file_size / 1024 / 1024:.1f}MB > 25MB"
-            )
+        # if file_size > max_size:
+        #     raise ValidationError(
+        #         f"ファイルサイズが制限を超えています: {file_size / 1024 / 1024:.1f}MB > 25MB"
+        #     )
 
         allowed_extensions = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}
         file_extension = Path(video_path).suffix.lower()
