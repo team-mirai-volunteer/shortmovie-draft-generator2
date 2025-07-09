@@ -7,6 +7,13 @@ from .whisper_client import (
     WhisperAPIError,
     ValidationError,
 )
+from .chatgpt_client import (
+    ChatGPTClient,
+    ChatGPTClientError,
+    ChatGPTAPIError,
+    JSONParseError,
+    ValidationError as ChatGPTValidationError,
+)
 
 __all__ = [
     "WhisperClient",
@@ -14,4 +21,9 @@ __all__ = [
     "AudioExtractionError",
     "WhisperAPIError",
     "ValidationError",
+    "ChatGPTClient",
+    "ChatGPTClientError",
+    "ChatGPTAPIError",
+    "JSONParseError",
+    "ChatGPTValidationError",
 ]

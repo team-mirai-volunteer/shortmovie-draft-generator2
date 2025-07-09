@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from typing import List
-from .transcription import TranscriptionResult
 
 
 @dataclass
@@ -15,6 +14,9 @@ class ShortVideoProposal:
         end_time: 切り抜き終了時刻（秒）
         caption: キャプション
         key_points: キーポイントのリスト
+        first_impact: 冒頭2秒のインパクトフレーズ
+        last_conclusion: 最後の結論・オチ
+        summary: 動画の主題
 
     Example:
         >>> proposal = ShortVideoProposal(
@@ -22,7 +24,10 @@ class ShortVideoProposal:
         ...     start_time=30.0,
         ...     end_time=90.0,
         ...     caption="今日の面白い話をまとめました！",
-        ...     key_points=["ポイント1", "ポイント2"]
+        ...     key_points=["ポイント1", "ポイント2"],
+        ...     first_impact="面白い話があります",
+        ...     last_conclusion="とても勉強になりました",
+        ...     summary="今日の面白いトークをまとめた動画"
         ... )
         >>> print(f"タイトル: {proposal.title}")
         タイトル: 面白いトーク集
@@ -33,6 +38,9 @@ class ShortVideoProposal:
     end_time: float
     caption: str
     key_points: List[str]
+    first_impact: str
+    last_conclusion: str
+    summary: str
 
 
 @dataclass
@@ -41,19 +49,19 @@ class DraftResult:
 
     Attributes:
         proposals: 企画提案のリスト
-        original_transcription: 元の文字起こし結果
+        total_count: 企画提案の総数
 
     Example:
         >>> from .transcription import TranscriptionSegment, TranscriptionResult
         >>> segments = [TranscriptionSegment(0.0, 10.0, "テスト")]
         >>> transcription = TranscriptionResult(segments, "テスト")
         >>> proposals = [
-        ...     ShortVideoProposal("タイトル1", 0.0, 5.0, "キャプション1", ["ポイント1"])
+        ...     ShortVideoProposal("タイトル1", 0.0, 5.0, "キャプション1", ["ポイント1"], "インパクト1", "結論1", "概要1")
         ... ]
-        >>> draft = DraftResult(proposals, transcription)
+        >>> draft = DraftResult(proposals, 1)
         >>> print(f"提案数: {len(draft.proposals)}")
         提案数: 1
     """
 
     proposals: List[ShortVideoProposal]
-    original_transcription: TranscriptionResult
+    total_count: int
