@@ -24,19 +24,19 @@
 ```mermaid
 graph TD
     A[main.py] --> B[GenerateShortDraftUsecase]
-    B --> C[DraftGenerator]
-    C --> D[WhisperClient]
-    C --> E[ChatGPTClient]
-    C --> F[PromptBuilder]
+    B --> C[WhisperClient]
+    B --> D[DraftGenerator]
 
-    D --> G[Whisper API]
+    D --> E[ChatGPTClient]
+    D --> F[PromptBuilder]
+    C --> G[Whisper API]
     E --> H[ChatGPT API]
 
     I[input/input.mp4] --> B
     B --> J[output/draft.md]
     B --> K[output/subtitle.srt]
 
-    L[.env] --> D
+    L[.env] --> C
     L --> E
 ```
 
@@ -63,12 +63,17 @@ graph TD
 ### 1. GenerateShortDraftUsecase
 ```python
 class GenerateShortDraftUsecase:
-    def __init__(self, draft_generator: DraftGenerator) -> None
+    def __init__(
+        self,
+        whisper_client: WhisperClient,
+        draft_generator: DraftGenerator
+    ) -> None
     def execute(self, video_path: str, output_dir: str) -> GenerateResult
 ```
 
 **責務**:
 - ショート動画企画書生成の全体フローを制御
+- 音声文字起こしの実行と調整
 - 入力検証と出力ファイル管理
 
 ### 2. DraftGenerator
@@ -76,16 +81,16 @@ class GenerateShortDraftUsecase:
 class DraftGenerator:
     def __init__(
         self,
-        whisper_client: WhisperClient,
         chatgpt_client: ChatGPTClient,
         prompt_builder: PromptBuilder
     ) -> None
-    def generate_draft(self, video_path: str) -> DraftResult
+    def generate_draft(self, transcription: TranscriptionResult) -> DraftResult
 ```
 
 **責務**:
-- 音声文字起こしとAI企画書生成の調整
-- 中間データの管理
+- 文字起こし結果からAI企画書生成への変換
+- プロンプト構築とChatGPT応答の構造化
+- 企画書データの整形
 
 ### 3. WhisperClient
 ```python
@@ -169,17 +174,17 @@ class GenerateResult:
    - 動画ファイルの存在確認
    - 出力ディレクトリの作成
 
-2. **音声抽出・文字起こし** (`WhisperClient`)
+2. **音声抽出・文字起こし** (`GenerateShortDraftUsecase` → `WhisperClient`)
    - 動画から音声抽出（ffmpeg使用）
    - Whisper APIで文字起こし実行
    - タイムスタンプ付きセグメント生成
 
-3. **企画書生成** (`ChatGPTClient` + `PromptBuilder`)
-   - 文字起こし結果からプロンプト構築
-   - ChatGPT APIで企画書生成
+3. **企画書生成** (`GenerateShortDraftUsecase` → `DraftGenerator`)
+   - 文字起こし結果からプロンプト構築（`PromptBuilder`）
+   - ChatGPT APIで企画書生成（`ChatGPTClient`）
    - 構造化データへの変換
 
-4. **ファイル出力** (`DraftGenerator`)
+4. **ファイル出力** (`GenerateShortDraftUsecase`)
    - マークダウン形式の企画書出力
    - SRT形式の字幕ファイル出力
 
@@ -306,15 +311,22 @@ flake8 = "^6.0.0"
 ```python
 class DIContainer:
     def __init__(self) -> None:
+        # Infrastructure Layer
         self._whisper_client = WhisperClient(os.getenv("OPENAI_API_KEY"))
         self._chatgpt_client = ChatGPTClient(os.getenv("OPENAI_API_KEY"))
         self._prompt_builder = PromptBuilder()
+
+        # Domain Layer - 責務を企画書生成に特化
         self._draft_generator = DraftGenerator(
-            self._whisper_client,
             self._chatgpt_client,
             self._prompt_builder
         )
-        self._usecase = GenerateShortDraftUsecase(self._draft_generator)
+
+        # Application Layer - 音声処理とフロー制御を担当
+        self._usecase = GenerateShortDraftUsecase(
+            self._whisper_client,
+            self._draft_generator
+        )
 
     def get_usecase(self) -> GenerateShortDraftUsecase:
         return self._usecase
