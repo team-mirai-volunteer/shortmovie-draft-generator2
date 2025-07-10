@@ -23,6 +23,54 @@
 poetry install
 ```
 
+## 環境設定
+
+### 1. 環境変数ファイルの作成
+
+`.env.example`をコピーして`.env`ファイルを作成してください：
+
+```bash
+cp .env.example .env
+```
+
+### 2. OpenAI APIキーの設定
+
+`.env`ファイルを編集し、OpenAI APIキーを設定してください：
+
+```bash
+# 必須: OpenAI APIキーを設定してください
+OPENAI_API_KEY=your_actual_openai_api_key_here
+
+# オプション: ChatGPTモデルを指定（デフォルト: gpt-4o）
+CHATGPT_MODEL=gpt-4o
+
+# オプション: Whisperモデルを指定（デフォルト: whisper-1）
+WHISPER_MODEL=whisper-1
+```
+
+**重要**:
+- OpenAI APIキーは[OpenAI Platform](https://platform.openai.com/api-keys)から取得できます
+- `.env`ファイルは`.gitignore`に含まれているため、Gitにコミットされません
+- APIキーは絶対に公開リポジトリにコミットしないでください
+
+### 3. 必要なシステム要件
+
+このプロジェクトは動画処理にffmpegを使用します。事前にインストールしてください：
+
+**macOS:**
+```bash
+brew install ffmpeg
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+**Windows:**
+[FFmpeg公式サイト](https://ffmpeg.org/download.html)からダウンロードしてインストールしてください。
+
 ## 使用方法
 
 ```bash
