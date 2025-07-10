@@ -24,7 +24,7 @@ class DIContainer:
         load_dotenv()
 
         self.openai_api_key = self._get_required_env("OPENAI_API_KEY")
-        self.chatgpt_model = os.getenv("CHATGPT_MODEL", "gpt-4")
+        self.chatgpt_model = os.getenv("CHATGPT_MODEL", "gpt-4o")
         self.whisper_model = os.getenv("WHISPER_MODEL", "whisper-1")
 
         self.whisper_client = WhisperClient(

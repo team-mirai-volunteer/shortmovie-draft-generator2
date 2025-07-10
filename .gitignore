@@ -177,6 +177,7 @@ cython_debug/
 .pypirc
 
 input/*.mp4
-output/*.txt
+output/*.md
+output/*.json
 output/*.srt
 intermediate/*.mp3
