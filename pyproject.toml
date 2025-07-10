@@ -4,6 +4,10 @@ version = "0.1.0"
 description = "ショート動画設計図生成プロジェクト"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.scripts]
+shortmovie-draft-generator = "src.main:main"
 
 [tool.poetry.dependencies]
 python = "^3.8.1"
