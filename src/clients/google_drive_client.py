@@ -2,7 +2,7 @@
 
 import os
 import json
-from typing import Optional, List
+from typing import Optional, List, Any
 from pathlib import Path
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
@@ -107,7 +107,7 @@ class GoogleDriveClient:
         # Google Drive APIサービスを初期化
         self.service = self._build_service()
 
-    def _build_service(self):
+    def _build_service(self) -> Any:
         """Google Drive APIサービスを構築"""
         try:
             # サービスアカウントキーファイルから認証情報を読み込み
@@ -330,6 +330,7 @@ class GoogleDriveClient:
         try:
             with open(self.service_account_path, 'r') as f:
                 service_account_info = json.load(f)
-                return service_account_info.get('client_email', 'unknown')
+                email = service_account_info.get('client_email')
+                return str(email) if email is not None else 'unknown'
         except:
             return 'unknown'
