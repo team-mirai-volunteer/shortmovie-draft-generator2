@@ -94,7 +94,7 @@ class GoogleDriveClient:
             service_account_path: サービスアカウントキーファイルのパス
         """
         self.service_account_path = service_account_path
-        self.scopes = ["https://www.googleapis.com/auth/drive.file"]
+        self.scopes = ["https://www.googleapis.com/auth/drive"]
 
         # サポートする動画ファイル拡張子
         self.video_extensions = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}
