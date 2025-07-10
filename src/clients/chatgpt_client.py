@@ -152,9 +152,7 @@ class ChatGPTClient:
                 if attempt < max_retries - 1:
                     time.sleep(2**attempt)
 
-        raise ChatGPTAPIError(
-            f"ChatGPT API呼び出しが{max_retries}回失敗しました: {str(last_exception)}"
-        )
+        raise ChatGPTAPIError(f"ChatGPT API呼び出しが{max_retries}回失敗しました: {str(last_exception)}")
 
     def _parse_json_response(self, raw_response: str) -> Dict[str, Any]:
         """レスポンステキストからJSONを抽出・解析
@@ -184,9 +182,7 @@ class ChatGPTClient:
             return parsed_data
 
         except json.JSONDecodeError as e:
-            raise JSONParseError(
-                f"JSONの解析に失敗しました: {str(e)}", raw_response
-            )
+            raise JSONParseError(f"JSONの解析に失敗しました: {str(e)}", raw_response)
 
     def _validate_response_structure(self, data: Dict[str, Any]) -> None:
         """レスポンスJSONの構造検証
@@ -226,9 +222,7 @@ class ChatGPTClient:
                     )
 
             if not isinstance(item["key_points"], list):
-                raise ValidationError(
-                    f"アイテム{i}の'key_points'がリスト形式ではありません"
-                )
+                raise ValidationError(f"アイテム{i}の'key_points'がリスト形式ではありません")
 
     def _convert_to_proposals(self, data: Dict[str, Any]) -> List[ShortVideoProposal]:
         """JSONデータをShortVideoProposalオブジェクトのリストに変換

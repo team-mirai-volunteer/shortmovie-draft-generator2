@@ -7,6 +7,7 @@ from src.usecases.generate_short_draft_usecase import (
     GenerateShortDraftUsecase,
     InputValidationError,
 )
+from src.service.srt_generator import SrtGenerator
 from src.models.result import GenerateResult
 from src.models.draft import DraftResult, ShortVideoProposal
 from src.models.transcription import TranscriptionResult, TranscriptionSegment

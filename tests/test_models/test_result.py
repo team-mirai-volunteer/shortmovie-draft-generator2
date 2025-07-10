@@ -145,12 +145,8 @@ class TestGenerateResult:
 
     def test_long_file_paths(self):
         """長いファイルパスのテスト"""
-        long_draft_path = (
-            "very/long/path/to/output/directory/with/many/subdirectories/draft.md"
-        )
-        long_subtitle_path = (
-            "very/long/path/to/output/directory/with/many/subdirectories/subtitle.srt"
-        )
+        long_draft_path = "very/long/path/to/output/directory/with/many/subdirectories/draft.md"
+        long_subtitle_path = "very/long/path/to/output/directory/with/many/subdirectories/subtitle.srt"
 
         result = GenerateResult(
             draft_file_path=long_draft_path,

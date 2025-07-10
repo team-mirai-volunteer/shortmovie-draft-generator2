@@ -1,7 +1,6 @@
 """Whisper APIクライアントモジュール"""
 
 import os
-import tempfile
 import time
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -129,8 +128,8 @@ class WhisperClient:
         if not os.path.exists(video_path):
             raise FileNotFoundError(f"動画ファイルが見つかりません: {video_path}")
 
-        file_size = os.path.getsize(video_path)
-        max_size = 25 * 1024 * 1024
+        # file_size = os.path.getsize(video_path)
+        # max_size = 25 * 1024 * 1024
         # if file_size > max_size:
         #     raise ValidationError(
         #         f"ファイルサイズが制限を超えています: {file_size / 1024 / 1024:.1f}MB > 25MB"
@@ -139,7 +138,9 @@ class WhisperClient:
         allowed_extensions = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}
         file_extension = Path(video_path).suffix.lower()
         if file_extension not in allowed_extensions:
-            raise ValidationError(f"サポートされていないファイル形式です: {file_extension}")
+            raise ValidationError(
+                f"サポートされていないファイル形式です: {file_extension}"
+            )
 
     def _extract_audio(self, video_path: str) -> str:
         """動画ファイルから音声を抽出
@@ -158,13 +159,17 @@ class WhisperClient:
             audio_path = self.temp_dir / f"{video_name}_audio.mp3"
 
             print(f"DEBUG: 動画ファイル: {video_path}")
-            print(f"DEBUG: 動画ファイルサイズ: {os.path.getsize(video_path) / 1024 / 1024:.1f}MB")
+            print(
+                f"DEBUG: 動画ファイルサイズ: {os.path.getsize(video_path) / 1024 / 1024:.1f}MB"
+            )
             print(f"DEBUG: 音声抽出先: {audio_path}")
 
             # MP3形式で抽出（64kbps、モノラル、16kHz）
             (
                 ffmpeg.input(video_path)
-                .output(str(audio_path), acodec="mp3", ac=1, ar=16000, audio_bitrate="64k")
+                .output(
+                    str(audio_path), acodec="mp3", ac=1, ar=16000, audio_bitrate="64k"
+                )
                 .overwrite_output()
                 .run(capture_stdout=True, capture_stderr=True)
             )
@@ -175,14 +180,16 @@ class WhisperClient:
                 )
 
             audio_size = os.path.getsize(str(audio_path))
-            print(f"DEBUG: 抽出された音声ファイルサイズ: {audio_size / 1024 / 1024:.1f}MB")
+            print(
+                f"DEBUG: 抽出された音声ファイルサイズ: {audio_size / 1024 / 1024:.1f}MB"
+            )
 
             # Whisper APIの制限チェック（25MB）
             max_size = 25 * 1024 * 1024
             if audio_size > max_size:
                 raise AudioExtractionError(
                     f"抽出された音声ファイルがWhisper APIの制限を超えています: {audio_size / 1024 / 1024:.1f}MB > 25MB",
-                    video_path
+                    video_path,
                 )
 
             return str(audio_path)
@@ -195,7 +202,9 @@ class WhisperClient:
                 ffmpeg_error=error_message,
             )
         except Exception as e:
-            raise AudioExtractionError(f"音声抽出中に予期しないエラーが発生しました: {str(e)}", video_path)
+            raise AudioExtractionError(
+                f"音声抽出中に予期しないエラーが発生しました: {str(e)}", video_path
+            )
 
     def _call_whisper_api(
         self, audio_path: str, max_retries: int = 3
@@ -265,7 +274,8 @@ class WhisperClient:
             for field in required_segment_fields:
                 if field not in segment:
                     raise ValidationError(
-                        f"セグメント{i}に必須フィールド'{field}'がありません", field_name=field
+                        f"セグメント{i}に必須フィールド'{field}'がありません",
+                        field_name=field,
                     )
 
     def _convert_to_transcription_result(

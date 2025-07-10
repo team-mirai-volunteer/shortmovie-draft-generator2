@@ -65,9 +65,7 @@ class DraftGenerator:
         self.chatgpt_client = chatgpt_client
         self.prompt_builder = prompt_builder
 
-    def transcribe_video(
-        self, video_path: str, output_dir: str
-    ) -> TranscriptionResult:
+    def transcribe_video(self, video_path: str, output_dir: str) -> TranscriptionResult:
         """動画ファイルから文字起こしを実行し、結果を保存
 
         Args:
@@ -88,9 +86,7 @@ class DraftGenerator:
             return transcription
 
         except Exception as e:
-            raise TranscriptionError(
-                f"動画の文字起こしに失敗しました: {str(e)}", video_path
-            )
+            raise TranscriptionError(f"動画の文字起こしに失敗しました: {str(e)}", video_path)
 
     def generate_draft(self, transcription: TranscriptionResult) -> DraftResult:
         """文字起こし結果から企画書を生成
@@ -109,9 +105,7 @@ class DraftGenerator:
 
             proposals = self.chatgpt_client.generate_draft(prompt)
 
-            return DraftResult(
-                proposals=proposals, original_transcription=transcription
-            )
+            return DraftResult(proposals=proposals, original_transcription=transcription)
 
         except Exception as e:
             raise DraftGenerationError(f"企画書の生成に失敗しました: {str(e)}")
@@ -161,9 +155,7 @@ class DraftGenerator:
                 transcription_file,
             )
 
-    def _save_transcription(
-        self, transcription: TranscriptionResult, video_path: str, output_dir: str
-    ) -> str:
+    def _save_transcription(self, transcription: TranscriptionResult, video_path: str, output_dir: str) -> str:
         """文字起こし結果をJSONファイルに保存
 
         Args:
@@ -187,9 +179,7 @@ class DraftGenerator:
 
         return str(transcription_file)
 
-    def _serialize_transcription(
-        self, transcription: TranscriptionResult
-    ) -> dict:
+    def _serialize_transcription(self, transcription: TranscriptionResult) -> dict:
         """TranscriptionResultをシリアライズ可能な辞書に変換
 
         Args:

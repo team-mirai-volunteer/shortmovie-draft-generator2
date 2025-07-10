@@ -61,9 +61,7 @@ class TestTranscriptionResult:
             TranscriptionSegment(0.0, 3.5, "こんにちは、今日は"),
             TranscriptionSegment(3.5, 7.2, "ショート動画について話します"),
         ]
-        result = TranscriptionResult(
-            segments=segments, full_text="こんにちは、今日はショート動画について話します"
-        )
+        result = TranscriptionResult(segments=segments, full_text="こんにちは、今日はショート動画について話します")
 
         assert len(result.segments) == 2
         assert result.full_text == "こんにちは、今日はショート動画について話します"
@@ -117,9 +115,7 @@ class TestSampleData:
             TranscriptionSegment(3.5, 7.2, "ショート動画について話します"),
         ]
 
-        sample_transcription = TranscriptionResult(
-            segments=sample_segments, full_text="こんにちは、今日はショート動画について話します"
-        )
+        sample_transcription = TranscriptionResult(segments=sample_segments, full_text="こんにちは、今日はショート動画について話します")
 
         # 基本的な検証
         assert len(sample_transcription.segments) == 2
@@ -165,7 +161,5 @@ class TestSampleData:
             assert current_segment.end_time == next_segment.start_time
 
         # 全体の時間範囲確認
-        total_duration = (
-            transcription.segments[-1].end_time - transcription.segments[0].start_time
-        )
+        total_duration = transcription.segments[-1].end_time - transcription.segments[0].start_time
         assert total_duration == 15.0

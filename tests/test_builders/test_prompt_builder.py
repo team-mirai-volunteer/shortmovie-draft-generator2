@@ -175,11 +175,7 @@ class TestSampleData:
 
         SHORT_VIDEO_TRANSCRIPTION = TranscriptionResult(
             segments=SHORT_VIDEO_SEGMENTS,
-            full_text=(
-                "皆さん、これ知ってました？実は...今日お話しするのは、誰も教えてくれない秘密の方法です。"
-                "まず最初のポイントは、タイミングが全てということ。次に重要なのは、相手の心理を理解すること。"
-                "最後に、これを実践すれば必ず結果が出ます。"
-            ),
+            full_text=("皆さん、これ知ってました？実は...今日お話しするのは、誰も教えてくれない秘密の方法です。" "まず最初のポイントは、タイミングが全てということ。次に重要なのは、相手の心理を理解すること。" "最後に、これを実践すれば必ず結果が出ます。"),
         )
 
         builder = PromptBuilder()
@@ -236,9 +232,7 @@ class TestSampleData:
             TranscriptionSegment(3600.0, 7200.0, "2時間目の内容"),
         ]
 
-        transcription = TranscriptionResult(
-            segments=segments, full_text="1時間の内容2時間目の内容"
-        )
+        transcription = TranscriptionResult(segments=segments, full_text="1時間の内容2時間目の内容")
 
         builder = PromptBuilder()
         prompt = builder.build_draft_prompt(transcription)

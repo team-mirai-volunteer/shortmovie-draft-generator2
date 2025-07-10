@@ -67,15 +67,11 @@ class TestShortVideoProposal:
     def test_time_consistency(self):
         """時刻の論理的整合性のテスト"""
         # 正常なケース
-        proposal = ShortVideoProposal(
-            title="テスト", start_time=10.0, end_time=60.0, caption="テスト", key_points=[]
-        )
+        proposal = ShortVideoProposal(title="テスト", start_time=10.0, end_time=60.0, caption="テスト", key_points=[])
         assert proposal.start_time < proposal.end_time
 
         # 同じ時刻のケース（瞬間的なクリップ）
-        instant_proposal = ShortVideoProposal(
-            title="瞬間", start_time=5.0, end_time=5.0, caption="瞬間的なクリップ", key_points=[]
-        )
+        instant_proposal = ShortVideoProposal(title="瞬間", start_time=5.0, end_time=5.0, caption="瞬間的なクリップ", key_points=[])
         assert instant_proposal.start_time == instant_proposal.end_time
 
     def test_field_types(self):
@@ -97,9 +93,7 @@ class TestShortVideoProposal:
 
     def test_empty_key_points(self):
         """空のキーポイントリストのテスト"""
-        proposal = ShortVideoProposal(
-            title="テスト", start_time=0.0, end_time=30.0, caption="テスト", key_points=[]
-        )
+        proposal = ShortVideoProposal(title="テスト", start_time=0.0, end_time=30.0, caption="テスト", key_points=[])
 
         assert len(proposal.key_points) == 0
         assert proposal.key_points == []
@@ -111,9 +105,7 @@ class TestDraftResult:
     def setup_method(self):
         """各テストメソッドの前に実行される準備処理"""
         self.sample_segments = [TranscriptionSegment(0.0, 10.0, "テスト文字起こし")]
-        self.sample_transcription = TranscriptionResult(
-            segments=self.sample_segments, full_text="テスト文字起こし"
-        )
+        self.sample_transcription = TranscriptionResult(segments=self.sample_segments, full_text="テスト文字起こし")
         self.sample_proposals = [
             ShortVideoProposal(
                 title="タイトル1",
@@ -210,9 +202,7 @@ class TestDraftResult:
 
     def test_empty_proposals(self):
         """空の企画提案リストのテスト"""
-        draft = DraftResult(
-            proposals=[], original_transcription=self.sample_transcription
-        )
+        draft = DraftResult(proposals=[], original_transcription=self.sample_transcription)
 
         assert len(draft.proposals) == 0
         assert draft.proposals == []
@@ -226,9 +216,7 @@ class TestDraftResult:
 
         assert isinstance(draft.proposals, list)
         assert isinstance(draft.original_transcription, TranscriptionResult)
-        assert all(
-            isinstance(proposal, ShortVideoProposal) for proposal in draft.proposals
-        )
+        assert all(isinstance(proposal, ShortVideoProposal) for proposal in draft.proposals)
 
 
 class TestSampleData:
@@ -275,9 +263,7 @@ class TestSampleData:
             TranscriptionSegment(45.0, 60.0, "最後にクラスについて説明します"),
         ]
 
-        full_text = (
-            "今日はPythonの基本について説明しますまずは変数の定義から始めましょう次に関数の作り方を見ていきます最後にクラスについて説明します"
-        )
+        full_text = "今日はPythonの基本について説明しますまずは変数の定義から始めましょう次に関数の作り方を見ていきます最後にクラスについて説明します"
         transcription = TranscriptionResult(segments, full_text)
 
         # 複数の企画提案

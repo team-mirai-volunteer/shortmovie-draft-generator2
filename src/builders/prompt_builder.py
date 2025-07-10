@@ -95,9 +95,7 @@ JSON形式以外の出力は一切含めず、上記形式で正確に回答し�
 
         segments_text = self._format_segments(transcription.segments)
 
-        return self.DRAFT_PROMPT_TEMPLATE.format(
-            full_text=transcription.full_text, segments_text=segments_text
-        )
+        return self.DRAFT_PROMPT_TEMPLATE.format(full_text=transcription.full_text, segments_text=segments_text)
 
     def _format_time_to_hms(self, seconds: float) -> str:
         """秒数をhh:mm:ss形式に変換

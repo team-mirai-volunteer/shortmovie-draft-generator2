@@ -1,7 +1,6 @@
 """SRT字幕ファイル生成サービス"""
 
 import os
-from pathlib import Path
 from typing import Optional
 
 from ..models.transcription import TranscriptionResult

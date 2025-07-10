@@ -6,7 +6,6 @@ from typing import Optional
 
 from ..models.result import GenerateResult
 from ..models.draft import DraftResult
-from ..models.transcription import TranscriptionResult
 from ..service.draft_generator import DraftGenerator
 from ..service.srt_generator import SrtGenerator
 

@@ -28,13 +28,9 @@ class DIContainer:
         self.chatgpt_model = os.getenv("CHATGPT_MODEL", "gpt-4o")
         self.whisper_model = os.getenv("WHISPER_MODEL", "whisper-1")
 
-        self.whisper_client = WhisperClient(
-            api_key=self.openai_api_key, model=self.whisper_model
-        )
+        self.whisper_client = WhisperClient(api_key=self.openai_api_key, model=self.whisper_model)
 
-        self.chatgpt_client = ChatGPTClient(
-            api_key=self.openai_api_key, model=self.chatgpt_model
-        )
+        self.chatgpt_client = ChatGPTClient(api_key=self.openai_api_key, model=self.chatgpt_model)
 
         self.prompt_builder = PromptBuilder()
 
@@ -46,9 +42,7 @@ class DIContainer:
 
         self.srt_generator = SrtGenerator()
 
-        self.generate_usecase = GenerateShortDraftUsecase(
-            draft_generator=self.draft_generator, srt_generator=self.srt_generator
-        )
+        self.generate_usecase = GenerateShortDraftUsecase(draft_generator=self.draft_generator, srt_generator=self.srt_generator)
 
     def _get_required_env(self, key: str) -> str:
         """必須環境変数を取得

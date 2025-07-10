@@ -139,20 +139,22 @@ class TestChatGPTClient:
         """正常な企画書生成のテスト"""
         mock_response = Mock()
         mock_response.choices = [Mock()]
-        mock_response.choices[0].message.content = json.dumps({
-            "items": [
-                {
-                    "first_impact": "インパクト",
-                    "last_conclusion": "結論",
-                    "summary": "要約",
-                    "time_start": "00:00:30",
-                    "time_end": "00:01:30",
-                    "title": "テストタイトル",
-                    "caption": "テストキャプション",
-                    "key_points": ["ポイント1", "ポイント2"],
-                }
-            ]
-        })
+        mock_response.choices[0].message.content = json.dumps(
+            {
+                "items": [
+                    {
+                        "first_impact": "インパクト",
+                        "last_conclusion": "結論",
+                        "summary": "要約",
+                        "time_start": "00:00:30",
+                        "time_end": "00:01:30",
+                        "title": "テストタイトル",
+                        "caption": "テストキャプション",
+                        "key_points": ["ポイント1", "ポイント2"],
+                    }
+                ]
+            }
+        )
 
         mock_client = Mock()
         mock_client.chat.completions.create.return_value = mock_response

@@ -85,9 +85,7 @@ class TestDraftGenerator:
         assert result.proposals == self.sample_proposals
         assert result.original_transcription == self.sample_transcription
 
-        self.mock_prompt_builder.build_draft_prompt.assert_called_once_with(
-            self.sample_transcription
-        )
+        self.mock_prompt_builder.build_draft_prompt.assert_called_once_with(self.sample_transcription)
         self.mock_chatgpt_client.generate_draft.assert_called_once_with("test prompt")
 
     def test_generate_draft_error(self):
