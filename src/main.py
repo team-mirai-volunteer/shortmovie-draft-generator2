@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 from src.clients.whisper_client import WhisperClient
 from src.clients.chatgpt_client import ChatGPTClient
+from src.clients.google_drive_client import GoogleDriveClient
 from src.builders.prompt_builder import PromptBuilder
 from src.service.draft_generator import DraftGenerator
 from src.service.srt_generator import SrtGenerator
@@ -32,6 +33,8 @@ class DIContainer:
 
         self.chatgpt_client = ChatGPTClient(api_key=self.openai_api_key, model=self.chatgpt_model)
 
+        self.google_drive_client = GoogleDriveClient()
+
         self.prompt_builder = PromptBuilder()
 
         self.draft_generator = DraftGenerator(
@@ -42,7 +45,9 @@ class DIContainer:
 
         self.srt_generator = SrtGenerator()
 
-        self.generate_usecase = GenerateShortDraftUsecase(draft_generator=self.draft_generator, srt_generator=self.srt_generator)
+        self.generate_usecase = GenerateShortDraftUsecase(
+            draft_generator=self.draft_generator, srt_generator=self.srt_generator, google_drive_client=self.google_drive_client
+        )
 
     def _get_required_env(self, key: str) -> str:
         """必須環境変数を取得
@@ -70,7 +75,7 @@ class DIContainer:
 
 
 @click.command()
-@click.argument("video_path", type=click.Path(exists=True, path_type=Path))
+@click.argument("input_source", type=str)
 @click.argument("output_dir", type=click.Path(path_type=Path))
 @click.option(
     "--verbose",
@@ -78,19 +83,23 @@ class DIContainer:
     is_flag=True,
     help="詳細なログを出力します",
 )
-def main(video_path: Path, output_dir: Path, verbose: bool) -> None:
-    """動画ファイルからショート動画企画書を生成
+@click.option("--drive", is_flag=True, help="Google DriveフォルダURLとして処理")
+def main(input_source: str, output_dir: Path, verbose: bool, drive: bool) -> None:
+    """動画ファイルまたはGoogle Driveフォルダからショート動画企画書を生成
 
-    VIDEO_PATH: 処理する動画ファイルのパス
+    INPUT_SOURCE: 動画ファイルのパスまたはGoogle DriveフォルダURL
     OUTPUT_DIR: 企画書と字幕ファイルの出力ディレクトリ
 
     例:
         poetry run python src/main.py input/video.mp4 output/
+
+        poetry run python src/main.py "https://drive.google.com/drive/folders/abc123?usp=sharing" output/ --drive
     """
     try:
         if verbose:
-            click.echo("=== ショート動画設計図生成プロジェクト ===")
-            click.echo(f"動画ファイル: {video_path}")
+            mode_text = "Google Drive連携" if drive else "ローカルファイル"
+            click.echo(f"=== ショート動画設計図生成プロジェクト（{mode_text}） ===")
+            click.echo(f"入力ソース: {input_source}")
             click.echo(f"出力ディレクトリ: {output_dir}")
             click.echo("")
 
@@ -98,9 +107,18 @@ def main(video_path: Path, output_dir: Path, verbose: bool) -> None:
 
         if verbose:
             click.echo("✓ 依存関係の初期化が完了しました")
-            click.echo("📹 動画の処理を開始します...")
+            if drive:
+                click.echo("🔍 Google Driveフォルダから動画ファイルを検索中...")
+            else:
+                click.echo("📹 動画の処理を開始します...")
 
-        result = container.generate_usecase.execute(str(video_path), str(output_dir))
+        if drive:
+            result = container.generate_usecase.execute_from_drive(input_source, str(output_dir))
+        else:
+            if not Path(input_source).exists():
+                click.echo(f"❌ 動画ファイルが存在しません: {input_source}", err=True)
+                sys.exit(1)
+            result = container.generate_usecase.execute(input_source, str(output_dir))
 
         if result.success:
             click.echo("🎉 処理が正常に完了しました！")
