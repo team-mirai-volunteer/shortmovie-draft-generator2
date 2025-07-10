@@ -27,9 +27,7 @@ class SrtGenerator:
         字幕ファイル: output/subtitle.srt
     """
 
-    def generate_srt_file(
-        self, transcription: TranscriptionResult, output_file_path: str
-    ) -> str:
+    def generate_srt_file(self, transcription: TranscriptionResult, output_file_path: str) -> str:
         """SRT字幕ファイルを生成
 
         Args:
@@ -56,9 +54,7 @@ class SrtGenerator:
             return output_file_path
 
         except Exception as e:
-            raise SrtGenerationError(
-                f"字幕ファイルの生成に失敗しました: {str(e)}", output_file_path
-            )
+            raise SrtGenerationError(f"字幕ファイルの生成に失敗しました: {str(e)}", output_file_path)
 
     def build_srt_content(self, transcription: TranscriptionResult) -> str:
         """SRT形式の内容を構築
