@@ -8,7 +8,7 @@ from ..models.result import GenerateResult
 from ..models.draft import DraftResult
 from ..service.draft_generator import DraftGenerator
 from ..service.srt_generator import SrtGenerator
-from ..clients.google_drive_client import GoogleDriveClient
+from ..clients.google_drive_client import GoogleDriveClient, FileUploadError
 from ..sources.google_drive_video_source import GoogleDriveVideoSource
 
 
@@ -50,17 +50,28 @@ class GenerateShortDraftUsecase:
         字幕: output/video_subtitle.srt
     """
 
-    def __init__(self, draft_generator: DraftGenerator, srt_generator: SrtGenerator, google_drive_client: GoogleDriveClient):
+    def __init__(
+        self,
+        draft_generator: DraftGenerator,
+        srt_generator: SrtGenerator,
+        google_drive_client: GoogleDriveClient,
+        upload_enabled: bool = False,
+        upload_folder_id: Optional[str] = None,
+    ):
         """GenerateShortDraftUsecaseを初期化
 
         Args:
             draft_generator: 企画書生成サービス
             srt_generator: SRT字幕ファイル生成サービス
             google_drive_client: Google Driveクライアント（DIContainerから注入）
+            upload_enabled: Google Driveアップロードを有効にするかどうか
+            upload_folder_id: アップロード先のGoogle DriveフォルダID
         """
         self.draft_generator = draft_generator
         self.srt_generator = srt_generator
         self.google_drive_client = google_drive_client
+        self.upload_enabled = upload_enabled
+        self.upload_folder_id = upload_folder_id
 
     def execute(self, video_path: str, output_dir: str) -> GenerateResult:
         """動画ファイルから企画書とSRTファイルを生成
@@ -83,10 +94,26 @@ class GenerateShortDraftUsecase:
 
             subtitle_file_path = self._generate_subtitle_file_delegated(draft_result, video_path, output_dir)
 
+            uploaded_draft_url = None
+            uploaded_subtitle_url = None
+
+            if self.upload_enabled and self.google_drive_client and self.upload_folder_id:
+                try:
+                    print("Google Driveへのアップロードを開始します...")
+                    uploaded_draft_url = self.google_drive_client.upload_file(draft_file_path, self.upload_folder_id)
+                    uploaded_subtitle_url = self.google_drive_client.upload_file(subtitle_file_path, self.upload_folder_id)
+                    print("Google Driveへのアップロードが完了しました")
+                except FileUploadError as e:
+                    print(f"警告: Google Driveアップロードに失敗しました: {e}")
+                except Exception as e:
+                    print(f"警告: Google Driveアップロード中に予期しないエラーが発生しました: {e}")
+
             return GenerateResult(
                 draft_file_path=draft_file_path,
                 subtitle_file_path=subtitle_file_path,
                 success=True,
+                uploaded_draft_url=uploaded_draft_url,
+                uploaded_subtitle_url=uploaded_subtitle_url,
             )
 
         except Exception as e:
@@ -314,10 +341,26 @@ class GenerateShortDraftUsecase:
 
             video_source.cleanup()
 
+            uploaded_draft_url = None
+            uploaded_subtitle_url = None
+
+            if self.upload_enabled and self.google_drive_client and self.upload_folder_id:
+                try:
+                    print("Google Driveへのアップロードを開始します...")
+                    uploaded_draft_url = self.google_drive_client.upload_file(draft_file_path, self.upload_folder_id)
+                    uploaded_subtitle_url = self.google_drive_client.upload_file(subtitle_file_path, self.upload_folder_id)
+                    print("Google Driveへのアップロードが完了しました")
+                except FileUploadError as e:
+                    print(f"警告: Google Driveアップロードに失敗しました: {e}")
+                except Exception as e:
+                    print(f"警告: Google Driveアップロード中に予期しないエラーが発生しました: {e}")
+
             return GenerateResult(
                 draft_file_path=draft_file_path,
                 subtitle_file_path=subtitle_file_path,
                 success=True,
+                uploaded_draft_url=uploaded_draft_url,
+                uploaded_subtitle_url=uploaded_subtitle_url,
             )
 
         except Exception as e:

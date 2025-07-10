@@ -1,20 +1,19 @@
 """Google Drive API v3 サービスアカウント認証クライアント"""
 
-import os
 import json
 from typing import Optional, List, Any
 from pathlib import Path
-from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
-import io
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
+import mimetypes
 
 from ..models.drive import DriveFile, DriveFolder
 
 
 class GoogleDriveError(Exception):
     """Google Drive関連のベース例外"""
+
     pass
 
 
@@ -64,6 +63,14 @@ class QuotaExceededError(GoogleDriveError):
         super().__init__(message)
 
 
+class FileUploadError(GoogleDriveError):
+    """ファイルアップロードエラー"""
+
+    def __init__(self, message: str, file_path: str):
+        super().__init__(message)
+        self.file_path = file_path
+
+
 class GoogleDriveClient:
     """Google Drive API v3 サービスアカウント認証クライアント
 
@@ -87,22 +94,13 @@ class GoogleDriveClient:
             service_account_path: サービスアカウントキーファイルのパス
         """
         self.service_account_path = service_account_path
-        # 読み取り専用スコープ（推奨）
-        self.scopes = ['https://www.googleapis.com/auth/drive.readonly']
+        self.scopes = ["https://www.googleapis.com/auth/drive.file"]
 
         # サポートする動画ファイル拡張子
         self.video_extensions = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}
 
         # 動画ファイルのMIMEタイプ
-        self.video_mime_types = {
-            "video/mp4",
-            "video/avi",
-            "video/quicktime",
-            "video/x-msvideo",
-            "video/x-ms-wmv",
-            "video/x-flv",
-            "video/webm"
-        }
+        self.video_mime_types = {"video/mp4", "video/avi", "video/quicktime", "video/x-msvideo", "video/x-ms-wmv", "video/x-flv", "video/webm"}
 
         # Google Drive APIサービスを初期化
         self.service = self._build_service()
@@ -111,13 +109,10 @@ class GoogleDriveClient:
         """Google Drive APIサービスを構築"""
         try:
             # サービスアカウントキーファイルから認証情報を読み込み
-            credentials = service_account.Credentials.from_service_account_file(
-                self.service_account_path,
-                scopes=self.scopes
-            )
+            credentials = service_account.Credentials.from_service_account_file(self.service_account_path, scopes=self.scopes)
 
             # Google Drive APIサービスを構築
-            service = build('drive', 'v3', credentials=credentials)
+            service = build("drive", "v3", credentials=credentials)
             return service
 
         except FileNotFoundError:
@@ -182,7 +177,7 @@ class GoogleDriveClient:
                     f"フォルダの共有権限が付与されているか確認してください。\n"
                     f"Google Driveでフォルダを右クリック → 共有 → サービスアカウントのメールアドレスを追加してください。\n"
                     f"エラー詳細: {str(e)}",
-                    folder_url
+                    folder_url,
                 )
 
             # フォルダ内のファイル一覧を取得
@@ -190,15 +185,13 @@ class GoogleDriveClient:
                 # フォルダ内のファイル一覧を取得
                 query = f"'{folder_id}' in parents and trashed=false"
 
-                results = self.service.files().list(
-                    q=query,
-                    fields="files(id,name,mimeType,size,webContentLink)",
-                    pageSize=1000,
-                    supportsAllDrives=True,
-                    includeItemsFromAllDrives=True
-                ).execute()
+                results = (
+                    self.service.files()
+                    .list(q=query, fields="files(id,name,mimeType,size,webContentLink)", pageSize=1000, supportsAllDrives=True, includeItemsFromAllDrives=True)
+                    .execute()
+                )
 
-                files_data = results.get('files', [])
+                files_data = results.get("files", [])
 
                 # ファイルが見つからない場合、代替クエリを試行
                 if len(files_data) == 0:
@@ -206,15 +199,19 @@ class GoogleDriveClient:
 
                     # 代替クエリ: trashedの条件を外す
                     alt_query = f"'{folder_id}' in parents"
-                    alt_results = self.service.files().list(
-                        q=alt_query,
-                        fields="files(id,name,mimeType,size,webContentLink)",
-                        pageSize=1000,
-                        supportsAllDrives=True,
-                        includeItemsFromAllDrives=True
-                    ).execute()
+                    alt_results = (
+                        self.service.files()
+                        .list(
+                            q=alt_query,
+                            fields="files(id,name,mimeType,size,webContentLink)",
+                            pageSize=1000,
+                            supportsAllDrives=True,
+                            includeItemsFromAllDrives=True,
+                        )
+                        .execute()
+                    )
 
-                    files_data = alt_results.get('files', [])
+                    files_data = alt_results.get("files", [])
 
                 files = self._parse_api_response(files_data)
 
@@ -228,7 +225,7 @@ class GoogleDriveClient:
                     f"フォルダの共有権限が付与されているか確認してください。\n"
                     f"Google Driveでフォルダを右クリック → 共有 → サービスアカウントのメールアドレスを追加してください。\n"
                     f"エラー詳細: {str(e)}",
-                    folder_url
+                    folder_url,
                 )
 
         except FolderAccessError:
@@ -283,10 +280,7 @@ class GoogleDriveClient:
         Returns:
             選択された動画ファイル（見つからない場合はNone）
         """
-        video_files = [
-            f for f in folder.files
-            if any(f.name.lower().endswith(ext) for ext in self.video_extensions)
-        ]
+        video_files = [f for f in folder.files if any(f.name.lower().endswith(ext) for ext in self.video_extensions)]
 
         if not video_files:
             return None
@@ -310,25 +304,109 @@ class GoogleDriveClient:
             mime_type = file_data.get("mimeType", "")
             file_name = file_data.get("name", "")
 
-            is_video = (
-                any(file_name.lower().endswith(ext) for ext in self.video_extensions) or
-                mime_type in self.video_mime_types
-            )
+            is_video = any(file_name.lower().endswith(ext) for ext in self.video_extensions) or mime_type in self.video_mime_types
 
             if is_video:
-                files.append(DriveFile(
-                    name=file_name,
-                    file_id=file_data["id"],
-                    download_url=f"https://drive.google.com/uc?export=download&id={file_data['id']}",
-                    size=int(file_data.get("size", 0)) if file_data.get("size") else None
-                ))
+                files.append(
+                    DriveFile(
+                        name=file_name,
+                        file_id=file_data["id"],
+                        download_url=f"https://drive.google.com/uc?export=download&id={file_data['id']}",
+                        size=int(file_data.get("size", 0)) if file_data.get("size") else None,
+                    )
+                )
 
         return files
+
+    def upload_file(self, file_path: str, folder_id: str, file_name: Optional[str] = None) -> str:
+        """ファイルをGoogle Driveにアップロード
+
+        Args:
+            file_path: アップロード対象のファイルパス
+            folder_id: アップロード先のフォルダID
+            file_name: アップロード後のファイル名（省略時は元のファイル名を使用）
+
+        Returns:
+            アップロードされたファイルのGoogle Drive URL
+
+        Raises:
+            FileUploadError: アップロードに失敗した場合
+        """
+        try:
+            file_path_obj = Path(file_path)
+            if not file_path_obj.exists():
+                raise FileUploadError(f"アップロード対象のファイルが見つかりません: {file_path}", file_path)
+
+            upload_file_name = file_name or file_path_obj.name
+
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if mime_type is None:
+                mime_type = "application/octet-stream"
+
+            file_metadata = {"name": upload_file_name, "parents": [folder_id]}
+
+            media = MediaFileUpload(file_path, mimetype=mime_type, resumable=True)
+
+            print(f"DEBUG: ファイルアップロード開始: {upload_file_name}")
+
+            request = self.service.files().create(body=file_metadata, media_body=media, fields="id,webViewLink", supportsAllDrives=True)
+
+            response = None
+            while response is None:
+                status, response = request.next_chunk()
+                if status:
+                    progress = int(status.progress() * 100)
+                    if progress % 25 == 0:
+                        print(f"DEBUG: アップロード進行状況: {progress}%")
+
+            file_id = response.get("id")
+            web_view_link = response.get("webViewLink")
+
+            print(f"DEBUG: アップロード完了: {upload_file_name} (ID: {file_id})")
+
+            if web_view_link:
+                return web_view_link
+            else:
+                raise FileUploadError("アップロード後のURLが取得できませんでした", file_path)
+
+        except FileUploadError:
+            raise
+        except Exception as e:
+            raise FileUploadError(f"ファイルのアップロードに失敗しました: {str(e)}", file_path)
+
+    def create_folder(self, folder_name: str, parent_folder_id: str) -> str:
+        """Google Driveにフォルダを作成
+
+        Args:
+            folder_name: 作成するフォルダ名
+            parent_folder_id: 親フォルダのID
+
+        Returns:
+            作成されたフォルダのID
+
+        Raises:
+            GoogleDriveError: フォルダ作成に失敗した場合
+        """
+        try:
+            file_metadata = {"name": folder_name, "mimeType": "application/vnd.google-apps.folder", "parents": [parent_folder_id]}
+
+            folder = self.service.files().create(body=file_metadata, fields="id", supportsAllDrives=True).execute()
+
+            folder_id = folder.get("id")
+            print(f"DEBUG: フォルダ作成完了: {folder_name} (ID: {folder_id})")
+
+            if folder_id:
+                return folder_id
+            else:
+                raise GoogleDriveError("フォルダ作成後のIDが取得できませんでした")
+
+        except Exception as e:
+            raise GoogleDriveError(f"フォルダの作成に失敗しました: {str(e)}")
 
     def _get_service_account_email(self) -> str:
         """サービスアカウントのメールアドレスを取得"""
         try:
-            with open(self.service_account_path, 'r') as f:
+            with open(self.service_account_path, "r") as f:
                 service_account_info = json.load(f)
                 email = service_account_info.get('client_email')
                 return str(email) if email is not None else 'unknown'

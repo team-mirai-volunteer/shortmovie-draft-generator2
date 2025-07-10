@@ -32,6 +32,7 @@ class DIContainer:
 
         # Google Drive API設定（サービスアカウント）
         self.google_service_account_path = self._get_required_env("GOOGLE_SERVICE_ACCOUNT_PATH")
+        self.google_drive_upload_folder_id = os.getenv("GOOGLE_DRIVE_UPLOAD_FOLDER_ID")
 
         self.whisper_client = WhisperClient(api_key=self.openai_api_key, model=self.whisper_model)
 
@@ -51,7 +52,11 @@ class DIContainer:
         self.srt_generator = SrtGenerator()
 
         self.generate_usecase = GenerateShortDraftUsecase(
-            draft_generator=self.draft_generator, srt_generator=self.srt_generator, google_drive_client=self.google_drive_client
+            draft_generator=self.draft_generator,
+            srt_generator=self.srt_generator,
+            google_drive_client=self.google_drive_client,
+            upload_enabled=False,
+            upload_folder_id=self.google_drive_upload_folder_id,
         )
 
     def _get_required_env(self, key: str) -> str:
@@ -90,7 +95,9 @@ class DIContainer:
     help="詳細なログを出力します",
 )
 @click.option("--drive", is_flag=True, help="Google DriveフォルダURLとして処理")
-def main(input_source: str, output_dir: Path, verbose: bool, drive: bool) -> None:
+@click.option("--upload", is_flag=True, help="生成されたファイルをGoogle Driveにアップロードする")
+@click.option("--upload-folder-id", help="アップロード先のGoogle DriveフォルダID")
+def main(input_source: str, output_dir: Path, verbose: bool, drive: bool, upload: bool, upload_folder_id: str) -> None:
     """動画ファイルまたはGoogle Driveフォルダからショート動画企画書を生成
 
     INPUT_SOURCE: 動画ファイルのパスまたはGoogle DriveフォルダURL
@@ -110,6 +117,19 @@ def main(input_source: str, output_dir: Path, verbose: bool, drive: bool) -> Non
             click.echo("")
 
         container = DIContainer()
+
+        if upload:
+            if not upload_folder_id and not container.generate_usecase.upload_folder_id:
+                click.echo("❌ アップロードを有効にする場合は --upload-folder-id オプションまたは GOOGLE_DRIVE_UPLOAD_FOLDER_ID 環境変数を設定してください", err=True)
+                sys.exit(1)
+
+            if not container.generate_usecase.google_drive_client:
+                click.echo("❌ Google Driveアップロードを使用するには GOOGLE_SERVICE_ACCOUNT_PATH 環境変数を設定してください", err=True)
+                sys.exit(1)
+
+            container.generate_usecase.upload_enabled = True
+            if upload_folder_id:
+                container.generate_usecase.upload_folder_id = upload_folder_id
 
         if verbose:
             click.echo("✓ 依存関係の初期化が完了しました")
@@ -132,6 +152,11 @@ def main(input_source: str, output_dir: Path, verbose: bool, drive: bool) -> Non
             click.echo("生成されたファイル:")
             click.echo(f"  📄 企画書: {result.draft_file_path}")
             click.echo(f"  📝 字幕: {result.subtitle_file_path}")
+
+            if result.uploaded_draft_url:
+                click.echo(f"  ☁️ 企画書 (Google Drive): {result.uploaded_draft_url}")
+            if result.uploaded_subtitle_url:
+                click.echo(f"  ☁️ 字幕 (Google Drive): {result.uploaded_subtitle_url}")
 
             if verbose:
                 click.echo("")

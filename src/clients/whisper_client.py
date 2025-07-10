@@ -19,9 +19,7 @@ class WhisperClientError(Exception):
 class AudioExtractionError(WhisperClientError):
     """音声抽出エラー"""
 
-    def __init__(
-        self, message: str, video_path: str, ffmpeg_error: Optional[str] = None
-    ):
+    def __init__(self, message: str, video_path: str, ffmpeg_error: Optional[str] = None):
         super().__init__(message)
         self.video_path = video_path
         self.ffmpeg_error = ffmpeg_error
@@ -64,9 +62,7 @@ class WhisperClient:
         全体テキスト長: 1250
     """
 
-    def __init__(
-        self, api_key: str, model: str = "whisper-1", temp_dir: Optional[str] = None
-    ) -> None:
+    def __init__(self, api_key: str, model: str = "whisper-1", temp_dir: Optional[str] = None) -> None:
         """WhisperClientを初期化
 
         Args:
@@ -138,9 +134,7 @@ class WhisperClient:
         allowed_extensions = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}
         file_extension = Path(video_path).suffix.lower()
         if file_extension not in allowed_extensions:
-            raise ValidationError(
-                f"サポートされていないファイル形式です: {file_extension}"
-            )
+            raise ValidationError(f"サポートされていないファイル形式です: {file_extension}")
 
     def _extract_audio(self, video_path: str) -> str:
         """動画ファイルから音声を抽出
@@ -159,30 +153,22 @@ class WhisperClient:
             audio_path = self.temp_dir / f"{video_name}_audio.mp3"
 
             print(f"DEBUG: 動画ファイル: {video_path}")
-            print(
-                f"DEBUG: 動画ファイルサイズ: {os.path.getsize(video_path) / 1024 / 1024:.1f}MB"
-            )
+            print(f"DEBUG: 動画ファイルサイズ: {os.path.getsize(video_path) / 1024 / 1024:.1f}MB")
             print(f"DEBUG: 音声抽出先: {audio_path}")
 
             # MP3形式で抽出（64kbps、モノラル、16kHz）
             (
                 ffmpeg.input(video_path)
-                .output(
-                    str(audio_path), acodec="mp3", ac=1, ar=16000, audio_bitrate="64k"
-                )
+                .output(str(audio_path), acodec="mp3", ac=1, ar=16000, audio_bitrate="64k")
                 .overwrite_output()
                 .run(capture_stdout=True, capture_stderr=True)
             )
 
             if not audio_path.exists():
-                raise AudioExtractionError(
-                    f"音声ファイルの生成に失敗しました: {audio_path}", video_path
-                )
+                raise AudioExtractionError(f"音声ファイルの生成に失敗しました: {audio_path}", video_path)
 
             audio_size = os.path.getsize(str(audio_path))
-            print(
-                f"DEBUG: 抽出された音声ファイルサイズ: {audio_size / 1024 / 1024:.1f}MB"
-            )
+            print(f"DEBUG: 抽出された音声ファイルサイズ: {audio_size / 1024 / 1024:.1f}MB")
 
             # Whisper APIの制限チェック（25MB）
             max_size = 25 * 1024 * 1024
@@ -202,13 +188,9 @@ class WhisperClient:
                 ffmpeg_error=error_message,
             )
         except Exception as e:
-            raise AudioExtractionError(
-                f"音声抽出中に予期しないエラーが発生しました: {str(e)}", video_path
-            )
+            raise AudioExtractionError(f"音声抽出中に予期しないエラーが発生しました: {str(e)}", video_path)
 
-    def _call_whisper_api(
-        self, audio_path: str, max_retries: int = 3
-    ) -> Dict[str, Any]:
+    def _call_whisper_api(self, audio_path: str, max_retries: int = 3) -> Dict[str, Any]:
         """リトライ機能付きWhisper API呼び出し
 
         Args:
@@ -247,9 +229,7 @@ class WhisperClient:
                 if attempt < max_retries - 1:
                     time.sleep(2**attempt)
 
-        raise WhisperAPIError(
-            f"Whisper API呼び出しが{max_retries}回失敗しました: {str(last_exception)}"
-        )
+        raise WhisperAPIError(f"Whisper API呼び出しが{max_retries}回失敗しました: {str(last_exception)}")
 
     def _validate_response_data(self, data: Dict[str, Any]) -> None:
         """レスポンスデータの検証
@@ -278,9 +258,7 @@ class WhisperClient:
                         field_name=field,
                     )
 
-    def _convert_to_transcription_result(
-        self, data: Dict[str, Any]
-    ) -> TranscriptionResult:
+    def _convert_to_transcription_result(self, data: Dict[str, Any]) -> TranscriptionResult:
         """APIレスポンスをTranscriptionResultオブジェクトに変換
 
         Args:
