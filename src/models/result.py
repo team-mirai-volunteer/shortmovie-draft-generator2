@@ -11,6 +11,8 @@ class GenerateResult:
     Attributes:
         draft_file_path: 生成された企画書ファイルのパス
         subtitle_file_path: 生成された字幕ファイルのパス
+        uploaded_draft_url: アップロードされた企画書のGoogle Drive URL
+        uploaded_subtitle_url: アップロードされた字幕ファイルのGoogle Drive URL
         success: 処理成功フラグ
         error_message: エラーメッセージ（失敗時のみ）
 
@@ -38,4 +40,6 @@ class GenerateResult:
     draft_file_path: str
     subtitle_file_path: str
     success: bool
+    uploaded_draft_url: Optional[str] = None
+    uploaded_subtitle_url: Optional[str] = None
     error_message: Optional[str] = None
