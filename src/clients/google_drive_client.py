@@ -87,8 +87,8 @@ class GoogleDriveClient:
             service_account_path: サービスアカウントキーファイルのパス
         """
         self.service_account_path = service_account_path
-        # 読み取りとアップロード両方に対応するスコープ
-        self.scopes = ['https://www.googleapis.com/auth/drive']
+        # 読み取り専用スコープ（推奨）
+        self.scopes = ['https://www.googleapis.com/auth/drive.readonly']
 
         # サポートする動画ファイル拡張子
         self.video_extensions = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}
@@ -140,8 +140,21 @@ class GoogleDriveClient:
             FolderAccessError: 無効なURLの場合
         """
         try:
+            print(f"DEBUG: 元のURL: {folder_url}")
+
             if "/folders/" in folder_url:
-                folder_id = folder_url.split("/folders/")[1].split("?")[0].split("/")[0]
+                # URLを分解してIDを抽出
+                parts = folder_url.split("/folders/")[1]
+                print(f"DEBUG: /folders/以降の部分: {parts}")
+
+                # ?やその他のパラメータを除去
+                folder_id = parts.split("?")[0].split("/")[0].split("#")[0]
+                print(f"DEBUG: 抽出されたフォルダID: {folder_id}")
+
+                # IDの妥当性チェック（Google DriveのIDは通常33文字程度）
+                if len(folder_id) < 20 or len(folder_id) > 50:
+                    raise FolderAccessError(f"抽出されたフォルダIDが無効です: {folder_id} (長さ: {len(folder_id)})", folder_url)
+
                 return folder_id
             else:
                 raise FolderAccessError(f"無効なGoogle DriveフォルダURLです: {folder_url}", folder_url)
@@ -163,19 +176,79 @@ class GoogleDriveClient:
         try:
             folder_id = self.extract_folder_id(folder_url)
 
-            # フォルダ詳細取得をスキップして、直接ファイル一覧取得を試行
+            # まずフォルダ自体の情報を取得してアクセス可能かテスト
             print(f"DEBUG: フォルダID: {folder_id}")
             print(f"DEBUG: サービスアカウント: {self._get_service_account_email()}")
 
+            try:
+                folder_info = self.service.files().get(fileId=folder_id, supportsAllDrives=True).execute()
+                print(f"DEBUG: フォルダ名: {folder_info.get('name', 'N/A')}")
+                print(f"DEBUG: フォルダMIMEタイプ: {folder_info.get('mimeType', 'N/A')}")
+                print(f"DEBUG: フォルダの所有者: {folder_info.get('owners', [])}")
+            except Exception as e:
+                print(f"DEBUG: フォルダアクセスエラー: {str(e)}")
+                raise FolderAccessError(
+                    f"フォルダにアクセスできません。サービスアカウント（{self._get_service_account_email()}）に"
+                    f"フォルダの共有権限が付与されているか確認してください。\n"
+                    f"Google Driveでフォルダを右クリック → 共有 → サービスアカウントのメールアドレスを追加してください。\n"
+                    f"エラー詳細: {str(e)}",
+                    folder_url
+                )
+
             # フォルダ内のファイル一覧を取得
             try:
+                # まず基本的なクエリを試行
                 query = f"'{folder_id}' in parents and trashed=false"
                 print(f"DEBUG: クエリ: {query}")
 
                 results = self.service.files().list(
                     q=query,
-                    fields="files(id,name,mimeType,size,webContentLink)"
+                    fields="files(id,name,mimeType,size,webContentLink,parents,owners)",
+                    pageSize=1000,  # より多くのファイルを取得
+                    supportsAllDrives=True,
+                    includeItemsFromAllDrives=True
                 ).execute()
+
+                # デバッグ用: APIレスポンス全体を表示
+                print(f"DEBUG: APIレスポンス: {results}")
+
+                files_data = results.get('files', [])
+
+                # ファイルが見つからない場合、別のクエリも試行
+                if len(files_data) == 0:
+                    print("DEBUG: 基本クエリでファイルが見つからないため、代替クエリを試行...")
+
+                    # 代替クエリ1: trashedの条件を外す
+                    alt_query1 = f"'{folder_id}' in parents"
+                    print(f"DEBUG: 代替クエリ1: {alt_query1}")
+                    alt_results1 = self.service.files().list(
+                        q=alt_query1,
+                        fields="files(id,name,mimeType,size,webContentLink,parents,owners,trashed)",
+                        pageSize=1000,
+                        supportsAllDrives=True,
+                        includeItemsFromAllDrives=True
+                    ).execute()
+                    print(f"DEBUG: 代替クエリ1結果: {alt_results1}")
+
+                    # 代替クエリ2: フォルダIDなしで全ファイル検索（テスト用）
+                    alt_query2 = "mimeType contains 'video/'"
+                    print(f"DEBUG: 代替クエリ2: {alt_query2}")
+                    alt_results2 = self.service.files().list(
+                        q=alt_query2,
+                        fields="files(id,name,mimeType,size,webContentLink,parents)",
+                        pageSize=10,  # テスト用に少数に制限
+                        supportsAllDrives=True,
+                        includeItemsFromAllDrives=True
+                    ).execute()
+                    print(f"DEBUG: 代替クエリ2結果: {alt_results2}")
+
+                    # 最初の代替クエリの結果を使用
+                    files_data = alt_results1.get('files', [])
+
+                results = {'files': files_data}  # 結果を統一
+
+                # デバッグ用: APIレスポンス全体を表示
+                print(f"DEBUG: APIレスポンス: {results}")
 
                 files_data = results.get('files', [])
 
@@ -227,7 +300,7 @@ class GoogleDriveClient:
             file_path = output_path / file.name
 
             # Google Drive APIでファイルをダウンロード
-            request = self.service.files().get_media(fileId=file.file_id)
+            request = self.service.files().get_media(fileId=file.file_id, supportsAllDrives=True)
 
             with open(file_path, "wb") as f:
                 downloader = MediaIoBaseDownload(f, request)
