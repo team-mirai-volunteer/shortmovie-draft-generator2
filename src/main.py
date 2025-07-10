@@ -25,15 +25,20 @@ class DIContainer:
         """環境変数を読み込み、各サービスを初期化"""
         load_dotenv()
 
+        # 既存の設定
         self.openai_api_key = self._get_required_env("OPENAI_API_KEY")
         self.chatgpt_model = os.getenv("CHATGPT_MODEL", "gpt-4o")
         self.whisper_model = os.getenv("WHISPER_MODEL", "whisper-1")
+
+        # Google Drive API設定（サービスアカウント）
+        self.google_service_account_path = self._get_required_env("GOOGLE_SERVICE_ACCOUNT_PATH")
 
         self.whisper_client = WhisperClient(api_key=self.openai_api_key, model=self.whisper_model)
 
         self.chatgpt_client = ChatGPTClient(api_key=self.openai_api_key, model=self.chatgpt_model)
 
-        self.google_drive_client = GoogleDriveClient()
+        # サービスアカウントパスを渡すように変更
+        self.google_drive_client = GoogleDriveClient(service_account_path=self.google_service_account_path)
 
         self.prompt_builder = PromptBuilder()
 
@@ -66,9 +71,10 @@ class DIContainer:
             click.echo(f"エラー: 環境変数 {key} が設定されていません", err=True)
             click.echo("以下の環境変数を設定してください:", err=True)
             click.echo("  OPENAI_API_KEY=your_openai_api_key", err=True)
+            click.echo("  GOOGLE_SERVICE_ACCOUNT_PATH=path/to/service-account-key.json", err=True)
             click.echo("", err=True)
             click.echo("オプション:", err=True)
-            click.echo("  CHATGPT_MODEL=gpt-4  # デフォルト: gpt-4", err=True)
+            click.echo("  CHATGPT_MODEL=gpt-4o  # デフォルト: gpt-4o", err=True)
             click.echo("  WHISPER_MODEL=whisper-1  # デフォルト: whisper-1", err=True)
             sys.exit(1)
         return value
