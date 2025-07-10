@@ -20,8 +20,9 @@ class TestGenerateShortDraftUsecase:
         """各テストメソッドの前に実行される初期化"""
         self.mock_draft_generator = Mock()
         self.mock_srt_generator = Mock()
+        self.mock_google_drive_client = Mock()
         self.usecase = GenerateShortDraftUsecase(
-            self.mock_draft_generator, self.mock_srt_generator
+            self.mock_draft_generator, self.mock_srt_generator, self.mock_google_drive_client
         )
 
         self.sample_transcription = TranscriptionResult(
@@ -51,6 +52,7 @@ class TestGenerateShortDraftUsecase:
         """初期化のテスト"""
         assert self.usecase.draft_generator == self.mock_draft_generator
         assert self.usecase.srt_generator == self.mock_srt_generator
+        assert self.usecase.google_drive_client == self.mock_google_drive_client
 
     def test_validate_inputs_empty_video_path(self):
         """空の動画パスの検証エラーテスト"""
@@ -229,7 +231,7 @@ class TestGenerateShortDraftUsecase:
 
         assert isinstance(result, GenerateResult)
         assert result.success is False
-        assert "Test error" in result.error_message
+        assert result.error_message is not None and "Test error" in result.error_message
         assert result.draft_file_path == ""
         assert result.subtitle_file_path == ""
 
@@ -263,7 +265,10 @@ class TestGenerateShortDraftUsecaseIntegration:
         # SrtGeneratorのインスタンスを作成
         srt_generator = SrtGenerator()
 
-        usecase = GenerateShortDraftUsecase(draft_generator, srt_generator)
+        from unittest.mock import Mock
+        mock_google_drive_client = Mock()
+        
+        usecase = GenerateShortDraftUsecase(draft_generator, srt_generator, mock_google_drive_client)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             sample_transcription = TranscriptionResult(
