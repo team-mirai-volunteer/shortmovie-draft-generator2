@@ -8,6 +8,7 @@ from ..models.result import GenerateResult
 from ..models.draft import DraftResult
 from ..models.transcription import TranscriptionResult
 from ..service.draft_generator import DraftGenerator
+from ..service.srt_generator import SrtGenerator
 
 
 class GenerateShortDraftUsecaseError(Exception):
@@ -48,13 +49,15 @@ class GenerateShortDraftUsecase:
         字幕: output/video_subtitle.srt
     """
 
-    def __init__(self, draft_generator: DraftGenerator):
+    def __init__(self, draft_generator: DraftGenerator, srt_generator: SrtGenerator):
         """GenerateShortDraftUsecaseを初期化
 
         Args:
             draft_generator: 企画書生成サービス
+            srt_generator: SRT字幕ファイル生成サービス
         """
         self.draft_generator = draft_generator
+        self.srt_generator = srt_generator
 
     def execute(self, video_path: str, output_dir: str) -> GenerateResult:
         """動画ファイルから企画書とSRTファイルを生成
@@ -79,7 +82,7 @@ class GenerateShortDraftUsecase:
                 draft_result, video_path, output_dir
             )
 
-            subtitle_file_path = self._generate_subtitle_file(
+            subtitle_file_path = self._generate_subtitle_file_delegated(
                 draft_result, video_path, output_dir
             )
 
@@ -108,7 +111,9 @@ class GenerateShortDraftUsecase:
             InputValidationError: 入力が無効な場合
         """
         if not video_path or not video_path.strip():
-            raise InputValidationError("動画ファイルパスが指定されていません", "video_path")
+            raise InputValidationError(
+                "動画ファイルパスが指定されていません", "video_path"
+            )
 
         if not os.path.exists(video_path):
             raise InputValidationError(
@@ -121,7 +126,9 @@ class GenerateShortDraftUsecase:
             )
 
         if not output_dir or not output_dir.strip():
-            raise InputValidationError("出力ディレクトリが指定されていません", "output_dir")
+            raise InputValidationError(
+                "出力ディレクトリが指定されていません", "output_dir"
+            )
 
         allowed_extensions = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}
         file_extension = Path(video_path).suffix.lower()
@@ -183,14 +190,14 @@ class GenerateShortDraftUsecase:
 
         except Exception as e:
             raise OutputGenerationError(
-                f"企画書ファイルの生成に失敗しました: {str(e)}", 
-                str(draft_file_path) if draft_file_path else None
+                f"企画書ファイルの生成に失敗しました: {str(e)}",
+                str(draft_file_path) if draft_file_path else None,
             )
 
-    def _generate_subtitle_file(
+    def _generate_subtitle_file_delegated(
         self, draft_result: DraftResult, video_path: str, output_dir: str
     ) -> str:
-        """SRT字幕ファイルを生成
+        """SRT字幕ファイルの生成をSrtGeneratorに委譲
 
         Args:
             draft_result: 企画書生成結果
@@ -208,17 +215,15 @@ class GenerateShortDraftUsecase:
             video_name = Path(video_path).stem
             subtitle_file_path = Path(output_dir) / f"{video_name}_subtitle.srt"
 
-            srt_content = self._build_srt_content(draft_result.original_transcription)
-
-            with open(subtitle_file_path, "w", encoding="utf-8") as f:
-                f.write(srt_content)
-
-            return str(subtitle_file_path)
+            # SrtGeneratorに処理を委譲
+            return self.srt_generator.generate_srt_file(
+                draft_result.original_transcription, str(subtitle_file_path)
+            )
 
         except Exception as e:
             raise OutputGenerationError(
-                f"字幕ファイルの生成に失敗しました: {str(e)}", 
-                str(subtitle_file_path) if subtitle_file_path else None
+                f"字幕ファイルの生成に失敗しました: {str(e)}",
+                str(subtitle_file_path) if subtitle_file_path else None,
             )
 
     def _build_markdown_content(
@@ -246,61 +251,43 @@ class GenerateShortDraftUsecase:
         ]
 
         for i, proposal in enumerate(draft_result.proposals, 1):
-            content_lines.extend([
-                f"## 企画 {i}: {proposal.title}",
-                "",
-                f"**切り抜き時間**: {self._format_seconds_to_time(proposal.start_time)} - "
-                f"{self._format_seconds_to_time(proposal.end_time)}",
-                f"**尺**: {proposal.end_time - proposal.start_time:.1f}秒",
-                "",
-                "**キャプション**:",
-                f"{proposal.caption}",
-                "",
-                "**キーポイント**:",
-            ])
+            content_lines.extend(
+                [
+                    f"## 企画 {i}: {proposal.title}",
+                    "",
+                    f"**切り抜き時間**: {self._format_seconds_to_time(proposal.start_time)} - "
+                    f"{self._format_seconds_to_time(proposal.end_time)}",
+                    f"**尺**: {proposal.end_time - proposal.start_time:.1f}秒",
+                    "",
+                    "**キャプション**:",
+                    f"{proposal.caption}",
+                    "",
+                    "**キーポイント**:",
+                ]
+            )
 
             for point in proposal.key_points:
                 content_lines.append(f"- {point}")
 
-            content_lines.extend([
-                "",
-                "---",
-                "",
-            ])
+            content_lines.extend(
+                [
+                    "",
+                    "---",
+                    "",
+                ]
+            )
 
-        content_lines.extend([
-            "## 元の文字起こし",
-            "",
-            "```",
-            draft_result.original_transcription.full_text,
-            "```",
-        ])
+        content_lines.extend(
+            [
+                "## 元の文字起こし",
+                "",
+                "```",
+                draft_result.original_transcription.full_text,
+                "```",
+            ]
+        )
 
         return "\n".join(content_lines)
-
-    def _build_srt_content(self, transcription: TranscriptionResult) -> str:
-        """SRT字幕ファイルの内容を構築
-
-        Args:
-            transcription: 文字起こし結果
-
-        Returns:
-            SRT形式の字幕内容
-        """
-        srt_lines = []
-
-        for i, segment in enumerate(transcription.segments, 1):
-            start_time = self._format_seconds_to_srt_time(segment.start_time)
-            end_time = self._format_seconds_to_srt_time(segment.end_time)
-
-            srt_lines.extend([
-                str(i),
-                f"{start_time} --> {end_time}",
-                segment.text,
-                "",
-            ])
-
-        return "\n".join(srt_lines)
 
     def _format_seconds_to_time(self, seconds: float) -> str:
         """秒数をhh:mm:ss形式に変換
@@ -315,21 +302,6 @@ class GenerateShortDraftUsecase:
         minutes = int((seconds % 3600) // 60)
         secs = int(seconds % 60)
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
-
-    def _format_seconds_to_srt_time(self, seconds: float) -> str:
-        """秒数をSRT形式の時刻（hh:mm:ss,mmm）に変換
-
-        Args:
-            seconds: 変換する秒数
-
-        Returns:
-            SRT形式の時刻文字列
-        """
-        hours = int(seconds // 3600)
-        minutes = int((seconds % 3600) // 60)
-        secs = int(seconds % 60)
-        milliseconds = int((seconds % 1) * 1000)
-        return f"{hours:02d}:{minutes:02d}:{secs:02d},{milliseconds:03d}"
 
     def _get_current_datetime(self) -> str:
         """現在の日時を文字列で取得

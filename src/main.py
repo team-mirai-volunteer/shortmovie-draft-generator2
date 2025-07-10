@@ -10,6 +10,7 @@ from src.clients.whisper_client import WhisperClient
 from src.clients.chatgpt_client import ChatGPTClient
 from src.builders.prompt_builder import PromptBuilder
 from src.service.draft_generator import DraftGenerator
+from src.service.srt_generator import SrtGenerator
 from src.usecases.generate_short_draft_usecase import GenerateShortDraftUsecase
 
 
@@ -43,8 +44,10 @@ class DIContainer:
             prompt_builder=self.prompt_builder,
         )
 
+        self.srt_generator = SrtGenerator()
+
         self.generate_usecase = GenerateShortDraftUsecase(
-            draft_generator=self.draft_generator
+            draft_generator=self.draft_generator, srt_generator=self.srt_generator
         )
 
     def _get_required_env(self, key: str) -> str:
