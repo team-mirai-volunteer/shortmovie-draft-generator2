@@ -176,10 +176,9 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-input/*.mp4
-output/*.md
-output/*.json
-output/*.srt
-output/*.mp4
-intermediate/*.mp3
-
+/input/*
+!/input/.gitkeep
+/output/*
+!/output/.gitkeep
+/intermediate/*
+!/intermediate/.gitkeep
