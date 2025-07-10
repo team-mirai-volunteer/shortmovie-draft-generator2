@@ -140,16 +140,12 @@ class GoogleDriveClient:
             FolderAccessError: 無効なURLの場合
         """
         try:
-            print(f"DEBUG: 元のURL: {folder_url}")
-
             if "/folders/" in folder_url:
                 # URLを分解してIDを抽出
                 parts = folder_url.split("/folders/")[1]
-                print(f"DEBUG: /folders/以降の部分: {parts}")
 
                 # ?やその他のパラメータを除去
                 folder_id = parts.split("?")[0].split("/")[0].split("#")[0]
-                print(f"DEBUG: 抽出されたフォルダID: {folder_id}")
 
                 # IDの妥当性チェック（Google DriveのIDは通常33文字程度）
                 if len(folder_id) < 20 or len(folder_id) > 50:
@@ -177,16 +173,10 @@ class GoogleDriveClient:
             folder_id = self.extract_folder_id(folder_url)
 
             # まずフォルダ自体の情報を取得してアクセス可能かテスト
-            print(f"DEBUG: フォルダID: {folder_id}")
-            print(f"DEBUG: サービスアカウント: {self._get_service_account_email()}")
-
             try:
                 folder_info = self.service.files().get(fileId=folder_id, supportsAllDrives=True).execute()
                 print(f"DEBUG: フォルダ名: {folder_info.get('name', 'N/A')}")
-                print(f"DEBUG: フォルダMIMEタイプ: {folder_info.get('mimeType', 'N/A')}")
-                print(f"DEBUG: フォルダの所有者: {folder_info.get('owners', [])}")
             except Exception as e:
-                print(f"DEBUG: フォルダアクセスエラー: {str(e)}")
                 raise FolderAccessError(
                     f"フォルダにアクセスできません。サービスアカウント（{self._get_service_account_email()}）に"
                     f"フォルダの共有権限が付与されているか確認してください。\n"
@@ -197,76 +187,42 @@ class GoogleDriveClient:
 
             # フォルダ内のファイル一覧を取得
             try:
-                # まず基本的なクエリを試行
+                # フォルダ内のファイル一覧を取得
                 query = f"'{folder_id}' in parents and trashed=false"
-                print(f"DEBUG: クエリ: {query}")
 
                 results = self.service.files().list(
                     q=query,
-                    fields="files(id,name,mimeType,size,webContentLink,parents,owners)",
-                    pageSize=1000,  # より多くのファイルを取得
+                    fields="files(id,name,mimeType,size,webContentLink)",
+                    pageSize=1000,
                     supportsAllDrives=True,
                     includeItemsFromAllDrives=True
                 ).execute()
 
-                # デバッグ用: APIレスポンス全体を表示
-                print(f"DEBUG: APIレスポンス: {results}")
-
                 files_data = results.get('files', [])
 
-                # ファイルが見つからない場合、別のクエリも試行
+                # ファイルが見つからない場合、代替クエリを試行
                 if len(files_data) == 0:
                     print("DEBUG: 基本クエリでファイルが見つからないため、代替クエリを試行...")
 
-                    # 代替クエリ1: trashedの条件を外す
-                    alt_query1 = f"'{folder_id}' in parents"
-                    print(f"DEBUG: 代替クエリ1: {alt_query1}")
-                    alt_results1 = self.service.files().list(
-                        q=alt_query1,
-                        fields="files(id,name,mimeType,size,webContentLink,parents,owners,trashed)",
+                    # 代替クエリ: trashedの条件を外す
+                    alt_query = f"'{folder_id}' in parents"
+                    alt_results = self.service.files().list(
+                        q=alt_query,
+                        fields="files(id,name,mimeType,size,webContentLink)",
                         pageSize=1000,
                         supportsAllDrives=True,
                         includeItemsFromAllDrives=True
                     ).execute()
-                    print(f"DEBUG: 代替クエリ1結果: {alt_results1}")
 
-                    # 代替クエリ2: フォルダIDなしで全ファイル検索（テスト用）
-                    alt_query2 = "mimeType contains 'video/'"
-                    print(f"DEBUG: 代替クエリ2: {alt_query2}")
-                    alt_results2 = self.service.files().list(
-                        q=alt_query2,
-                        fields="files(id,name,mimeType,size,webContentLink,parents)",
-                        pageSize=10,  # テスト用に少数に制限
-                        supportsAllDrives=True,
-                        includeItemsFromAllDrives=True
-                    ).execute()
-                    print(f"DEBUG: 代替クエリ2結果: {alt_results2}")
-
-                    # 最初の代替クエリの結果を使用
-                    files_data = alt_results1.get('files', [])
-
-                results = {'files': files_data}  # 結果を統一
-
-                # デバッグ用: APIレスポンス全体を表示
-                print(f"DEBUG: APIレスポンス: {results}")
-
-                files_data = results.get('files', [])
-
-                # デバッグ用: 取得したファイル一覧を表示
-                print(f"DEBUG: フォルダ内のファイル数: {len(files_data)}")
-                for file_data in files_data:
-                    print(f"DEBUG: ファイル名: {file_data.get('name', 'N/A')}, MIMEタイプ: {file_data.get('mimeType', 'N/A')}")
+                    files_data = alt_results.get('files', [])
 
                 files = self._parse_api_response(files_data)
 
                 print(f"DEBUG: 動画ファイルとして認識されたファイル数: {len(files)}")
-                for file in files:
-                    print(f"DEBUG: 動画ファイル: {file.name}")
 
                 return DriveFolder(folder_id=folder_id, files=files)
 
             except Exception as e:
-                print(f"DEBUG: ファイル一覧取得エラー: {str(e)}")
                 raise FolderAccessError(
                     f"フォルダ内のファイル一覧取得に失敗しました。サービスアカウント（{self._get_service_account_email()}）に"
                     f"フォルダの共有権限が付与されているか確認してください。\n"
@@ -308,7 +264,10 @@ class GoogleDriveClient:
                 while done is False:
                     status, done = downloader.next_chunk()
                     if status:
-                        print(f"DEBUG: ダウンロード進行状況: {int(status.progress() * 100)}%")
+                        progress = int(status.progress() * 100)
+                        # 25%刻みで進行状況を表示
+                        if progress % 25 == 0:
+                            print(f"DEBUG: ダウンロード進行状況: {progress}%")
 
             return str(file_path)
 
