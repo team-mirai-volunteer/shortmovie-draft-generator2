@@ -408,6 +408,7 @@ class GoogleDriveClient:
         try:
             with open(self.service_account_path, "r") as f:
                 service_account_info = json.load(f)
-                return service_account_info.get("client_email", "unknown")
-        except Exception:
-            return "unknown"
+                email = service_account_info.get('client_email')
+                return str(email) if email is not None else 'unknown'
+        except:
+            return 'unknown'

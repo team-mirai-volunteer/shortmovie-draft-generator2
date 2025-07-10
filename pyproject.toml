@@ -10,7 +10,7 @@ packages = [{include = "src"}]
 shortmovie-draft-generator = "src.main:main"
 
 [tool.poetry.dependencies]
-python = "^3.8.1"
+python = "^3.9"
 openai = "^1.0.0"
 python-dotenv = "^1.0.0"
 click = "^8.0.0"
@@ -27,13 +27,14 @@ pytest = "^7.0.0"
 black = "^23.0.0"
 flake8 = "^6.0.0"
 pytest-cov = "^4.0.0"
+types-requests = "^2.32.4.20250611"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -52,6 +53,17 @@ module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = [
+    "ffmpeg",
+    "ffmpeg.*",
+    "googleapiclient",
+    "googleapiclient.*",
+    "google.auth.*",
+    "google.oauth2.*"
+]
+ignore_missing_imports = true
 
 [tool.black]
 line-length = 160
