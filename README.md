@@ -186,14 +186,15 @@ uv run pytest
 uv run mypy src/
 ```
 
-### コードフォーマット
+### コードフォーマット・リンター
 
 ```bash
-uv run black src/ tests/
-```
+# フォーマットチェック
+uv run ruff check src/ tests/
 
-### リンター
+# 自動修正
+uv run ruff check --fix src/ tests/
 
-```bash
-uv run flake8 src/ tests/
+# コードフォーマット
+uv run ruff format src/ tests/
 ```

@@ -1,7 +1,6 @@
 """SRT字幕ファイル生成サービス"""
 
 import os
-from typing import Optional
 
 from ..models.transcription import TranscriptionResult
 
@@ -9,7 +8,7 @@ from ..models.transcription import TranscriptionResult
 class SrtGenerationError(Exception):
     """SRT生成関連のエラー"""
 
-    def __init__(self, message: str, file_path: Optional[str] = None):
+    def __init__(self, message: str, file_path: str | None = None):
         super().__init__(message)
         self.file_path = file_path
 
@@ -25,6 +24,7 @@ class SrtGenerator:
         >>> file_path = generator.generate_srt_file(transcription, "output/subtitle.srt")
         >>> print(f"字幕ファイル: {file_path}")
         字幕ファイル: output/subtitle.srt
+
     """
 
     def generate_srt_file(self, transcription: TranscriptionResult, output_file_path: str) -> str:
@@ -39,6 +39,7 @@ class SrtGenerator:
 
         Raises:
             SrtGenerationError: SRT生成に失敗した場合
+
         """
         try:
             srt_content = self.build_srt_content(transcription)
@@ -54,7 +55,7 @@ class SrtGenerator:
             return output_file_path
 
         except Exception as e:
-            raise SrtGenerationError(f"字幕ファイルの生成に失敗しました: {str(e)}", output_file_path)
+            raise SrtGenerationError(f"字幕ファイルの生成に失敗しました: {e!s}", output_file_path) from e
 
     def build_srt_content(self, transcription: TranscriptionResult) -> str:
         """SRT形式の内容を構築
@@ -64,6 +65,7 @@ class SrtGenerator:
 
         Returns:
             SRT形式の文字列
+
         """
         srt_lines = []
 
@@ -77,7 +79,7 @@ class SrtGenerator:
                     f"{start_time} --> {end_time}",
                     segment.text,
                     "",
-                ]
+                ],
             )
 
         return "\n".join(srt_lines)
@@ -90,6 +92,7 @@ class SrtGenerator:
 
         Returns:
             SRT形式の時刻文字列（hh:mm:ss,mmm）
+
         """
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)

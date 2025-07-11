@@ -1,20 +1,19 @@
 """Google Drive API v3 サービスアカウント認証クライアント"""
 
 import json
-from typing import Optional, List, Any
+import mimetypes
 from pathlib import Path
+from typing import Any
+
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
-import mimetypes
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 
 from ..models.drive import DriveFile, DriveFolder
 
 
 class GoogleDriveError(Exception):
     """Google Drive関連のベース例外"""
-
-    pass
 
 
 class FolderAccessError(GoogleDriveError):
@@ -44,7 +43,7 @@ class NoVideoFileError(GoogleDriveError):
 class GoogleDriveAPIError(GoogleDriveError):
     """Google Drive API関連のエラー"""
 
-    def __init__(self, message: str, api_error_code: Optional[str] = None):
+    def __init__(self, message: str, api_error_code: str | None = None):
         super().__init__(message)
         self.api_error_code = api_error_code
 
@@ -85,6 +84,7 @@ class GoogleDriveClient:
         ...     path = client.download_file(video_file, "output/")
         ...     print(f"ダウンロード完了: {path}")
         ダウンロード完了: output/sample_video.mp4
+
     """
 
     def __init__(self, service_account_path: str):
@@ -92,6 +92,7 @@ class GoogleDriveClient:
 
         Args:
             service_account_path: サービスアカウントキーファイルのパス
+
         """
         self.service_account_path = service_account_path
         self.scopes = ["https://www.googleapis.com/auth/drive"]
@@ -115,12 +116,12 @@ class GoogleDriveClient:
             service = build("drive", "v3", credentials=credentials)
             return service
 
-        except FileNotFoundError:
-            raise GoogleDriveError(f"サービスアカウントキーファイルが見つかりません: {self.service_account_path}")
-        except json.JSONDecodeError:
-            raise GoogleDriveError(f"サービスアカウントキーファイルの形式が正しくありません: {self.service_account_path}")
+        except FileNotFoundError as e:
+            raise GoogleDriveError(f"サービスアカウントキーファイルが見つかりません: {self.service_account_path}") from e
+        except json.JSONDecodeError as e:
+            raise GoogleDriveError(f"サービスアカウントキーファイルの形式が正しくありません: {self.service_account_path}") from e
         except Exception as e:
-            raise GoogleDriveError(f"Google Drive APIサービスの初期化に失敗しました: {str(e)}")
+            raise GoogleDriveError(f"Google Drive APIサービスの初期化に失敗しました: {e!s}") from e
 
     def extract_folder_id(self, folder_url: str) -> str:
         """フォルダURLからフォルダIDを抽出
@@ -133,6 +134,7 @@ class GoogleDriveClient:
 
         Raises:
             FolderAccessError: 無効なURLの場合
+
         """
         try:
             if "/folders/" in folder_url:
@@ -150,7 +152,7 @@ class GoogleDriveClient:
             else:
                 raise FolderAccessError(f"無効なGoogle DriveフォルダURLです: {folder_url}", folder_url)
         except Exception as e:
-            raise FolderAccessError(f"フォルダIDの抽出に失敗しました: {str(e)}", folder_url)
+            raise FolderAccessError(f"フォルダIDの抽出に失敗しました: {e!s}", folder_url) from e
 
     def list_files(self, folder_url: str) -> DriveFolder:
         """共有フォルダのファイル一覧を取得
@@ -163,6 +165,7 @@ class GoogleDriveClient:
 
         Raises:
             FolderAccessError: フォルダアクセスに失敗した場合
+
         """
         try:
             folder_id = self.extract_folder_id(folder_url)
@@ -176,9 +179,9 @@ class GoogleDriveClient:
                     f"フォルダにアクセスできません。サービスアカウント（{self._get_service_account_email()}）に"
                     f"フォルダの共有権限が付与されているか確認してください。\n"
                     f"Google Driveでフォルダを右クリック → 共有 → サービスアカウントのメールアドレスを追加してください。\n"
-                    f"エラー詳細: {str(e)}",
+                    f"エラー詳細: {e!s}",
                     folder_url,
-                )
+                ) from e
 
             # フォルダ内のファイル一覧を取得
             try:
@@ -224,14 +227,14 @@ class GoogleDriveClient:
                     f"フォルダ内のファイル一覧取得に失敗しました。サービスアカウント（{self._get_service_account_email()}）に"
                     f"フォルダの共有権限が付与されているか確認してください。\n"
                     f"Google Driveでフォルダを右クリック → 共有 → サービスアカウントのメールアドレスを追加してください。\n"
-                    f"エラー詳細: {str(e)}",
+                    f"エラー詳細: {e!s}",
                     folder_url,
-                )
+                ) from e
 
         except FolderAccessError:
             raise
         except Exception as e:
-            raise FolderAccessError(f"フォルダ情報の取得に失敗しました: {str(e)}", folder_url)
+            raise FolderAccessError(f"フォルダ情報の取得に失敗しました: {e!s}", folder_url) from e
 
     def download_file(self, file: DriveFile, output_dir: str) -> str:
         """ファイルをダウンロード
@@ -245,6 +248,7 @@ class GoogleDriveClient:
 
         Raises:
             FileDownloadError: ダウンロードに失敗した場合
+
         """
         try:
             output_path = Path(output_dir)
@@ -269,9 +273,9 @@ class GoogleDriveClient:
             return str(file_path)
 
         except Exception as e:
-            raise FileDownloadError(f"ファイルのダウンロードに失敗しました: {str(e)}", file.name)
+            raise FileDownloadError(f"ファイルのダウンロードに失敗しました: {e!s}", file.name) from e
 
-    def select_earliest_video_file(self, folder: DriveFolder) -> Optional[DriveFile]:
+    def select_earliest_video_file(self, folder: DriveFolder) -> DriveFile | None:
         """最も若いファイル名の動画ファイルを選択
 
         Args:
@@ -279,6 +283,7 @@ class GoogleDriveClient:
 
         Returns:
             選択された動画ファイル（見つからない場合はNone）
+
         """
         video_files = [f for f in folder.files if any(f.name.lower().endswith(ext) for ext in self.video_extensions)]
 
@@ -288,7 +293,7 @@ class GoogleDriveClient:
         # ファイル名でソート（アルファベット順、大文字小文字を区別しない）
         return sorted(video_files, key=lambda f: f.name.lower())[0]
 
-    def _parse_api_response(self, files_data: List[dict]) -> List[DriveFile]:
+    def _parse_api_response(self, files_data: list[dict]) -> list[DriveFile]:
         """Google Drive APIレスポンスからファイル情報を抽出
 
         Args:
@@ -296,6 +301,7 @@ class GoogleDriveClient:
 
         Returns:
             DriveFileオブジェクトのリスト
+
         """
         files = []
 
@@ -314,12 +320,12 @@ class GoogleDriveClient:
                         download_url=f"https://drive.google.com/uc?export=download&id={file_data['id']}",
                         mime_type=mime_type,
                         size=int(file_data.get("size", 0)) if file_data.get("size") else None,
-                    )
+                    ),
                 )
 
         return files
 
-    def upload_file(self, file_path: str, folder_id: str, file_name: Optional[str] = None) -> str:
+    def upload_file(self, file_path: str, folder_id: str, file_name: str | None = None) -> str:
         """ファイルをGoogle Driveにアップロード
 
         Args:
@@ -332,6 +338,7 @@ class GoogleDriveClient:
 
         Raises:
             FileUploadError: アップロードに失敗した場合
+
         """
         try:
             file_path_obj = Path(file_path)
@@ -360,7 +367,7 @@ class GoogleDriveClient:
                     if progress % 25 == 0:
                         print(f"DEBUG: アップロード進行状況: {progress}%")
 
-            file_id = response.get("id")
+            file_id = response.get("id")  # type: ignore[unreachable]
             web_view_link = response.get("webViewLink")
 
             print(f"DEBUG: アップロード完了: {upload_file_name} (ID: {file_id})")
@@ -373,7 +380,7 @@ class GoogleDriveClient:
         except FileUploadError:
             raise
         except Exception as e:
-            raise FileUploadError(f"ファイルのアップロードに失敗しました: {str(e)}", file_path)
+            raise FileUploadError(f"ファイルのアップロードに失敗しました: {e!s}", file_path) from e
 
     def create_folder(self, folder_name: str, parent_folder_id: str) -> str:
         """Google Driveにフォルダを作成
@@ -387,6 +394,7 @@ class GoogleDriveClient:
 
         Raises:
             GoogleDriveError: フォルダ作成に失敗した場合
+
         """
         try:
             file_metadata = {"name": folder_name, "mimeType": "application/vnd.google-apps.folder", "parents": [parent_folder_id]}
@@ -402,7 +410,7 @@ class GoogleDriveClient:
                 raise GoogleDriveError("フォルダ作成後のIDが取得できませんでした")
 
         except Exception as e:
-            raise GoogleDriveError(f"フォルダの作成に失敗しました: {str(e)}")
+            raise GoogleDriveError(f"フォルダの作成に失敗しました: {e!s}") from e
 
     def folder_exists(self, parent_folder_id: str, folder_name: str) -> bool:
         """指定した親フォルダ内に特定の名前のフォルダが存在するかチェック"""
@@ -414,20 +422,20 @@ class GoogleDriveClient:
             return len(results.get("files", [])) > 0
 
         except Exception as e:
-            raise GoogleDriveError(f"フォルダ存在チェックに失敗しました: {str(e)}")
+            raise GoogleDriveError(f"フォルダ存在チェックに失敗しました: {e!s}") from e
 
-    def list_folders(self, folder_url: str) -> List[DriveFile]:
+    def list_folders(self, folder_url: str) -> list[DriveFile]:
         """フォルダ内のサブフォルダ一覧を取得"""
         try:
             folder = self.list_files(folder_url)
             return [f for f in folder.files if f.mime_type == "application/vnd.google-apps.folder"]
         except Exception as e:
-            raise GoogleDriveError(f"サブフォルダ一覧の取得に失敗しました: {str(e)}")
+            raise GoogleDriveError(f"サブフォルダ一覧の取得に失敗しました: {e!s}") from e
 
     def _get_service_account_email(self) -> str:
         """サービスアカウントのメールアドレスを取得"""
         try:
-            with open(self.service_account_path, "r") as f:
+            with open(self.service_account_path) as f:
                 service_account_info = json.load(f)
                 email = service_account_info.get("client_email")
                 return str(email) if email is not None else "unknown"

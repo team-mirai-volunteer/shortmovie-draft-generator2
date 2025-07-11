@@ -1,15 +1,20 @@
 """DraftGeneratorのテスト"""
 
-import pytest
-from unittest.mock import Mock, patch, mock_open
+import os
+from unittest.mock import Mock, mock_open, patch
 
+import pytest
+
+from src.builders.prompt_builder import PromptBuilder
+from src.clients.chatgpt_client import ChatGPTClient
+from src.clients.whisper_client import WhisperClient
+from src.models.draft import DraftResult, ShortVideoProposal
+from src.models.transcription import TranscriptionResult, TranscriptionSegment
 from src.service.draft_generator import (
+    DraftGenerationError,
     DraftGenerator,
     TranscriptionError,
-    DraftGenerationError,
 )
-from src.models.transcription import TranscriptionResult, TranscriptionSegment
-from src.models.draft import DraftResult, ShortVideoProposal
 
 
 class TestDraftGenerator:
@@ -42,7 +47,7 @@ class TestDraftGenerator:
                 end_time=10.0,
                 caption="テストキャプション",
                 key_points=["ポイント1", "ポイント2"],
-            )
+            ),
         ]
 
     def test_init(self):
@@ -181,18 +186,12 @@ class TestDraftGeneratorIntegration:
 
     def test_full_workflow_integration(self):
         """完全なワークフローの統合テスト"""
-        import os
-
         if not os.getenv("INTEGRATION_TEST"):
             pytest.skip("統合テストはINTEGRATION_TEST=trueの場合のみ実行")
 
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             pytest.skip("OPENAI_API_KEYが設定されていません")
-
-        from src.clients.whisper_client import WhisperClient
-        from src.clients.chatgpt_client import ChatGPTClient
-        from src.builders.prompt_builder import PromptBuilder
 
         whisper_client = WhisperClient(api_key)
         chatgpt_client = ChatGPTClient(api_key)

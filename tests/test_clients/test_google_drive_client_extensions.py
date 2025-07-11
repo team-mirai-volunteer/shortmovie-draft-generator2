@@ -11,10 +11,9 @@ class TestGoogleDriveClientExtensions:
 
     def setup_method(self):
         """テストセットアップ"""
-        with patch("src.clients.google_drive_client.service_account"):
-            with patch("src.clients.google_drive_client.build"):
-                self.client = GoogleDriveClient("dummy_path")
-                self.client.service = Mock()
+        with patch("src.clients.google_drive_client.service_account"), patch("src.clients.google_drive_client.build"):
+            self.client = GoogleDriveClient("dummy_path")
+            self.client.service = Mock()
 
     def test_folder_exists_true(self):
         """フォルダが存在する場合のテスト"""
