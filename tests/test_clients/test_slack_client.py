@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import json
 import time
+import requests
 from datetime import datetime
 
 from src.clients.slack_client import (
