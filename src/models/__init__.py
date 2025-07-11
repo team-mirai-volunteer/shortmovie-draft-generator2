@@ -1,13 +1,13 @@
 """データモデルパッケージ"""
 
-from .transcription import TranscriptionSegment, TranscriptionResult
-from .draft import ShortVideoProposal, DraftResult
+from .draft import DraftResult, ShortVideoProposal
 from .result import GenerateResult
+from .transcription import TranscriptionResult, TranscriptionSegment
 
 __all__ = [
-    "TranscriptionSegment",
-    "TranscriptionResult",
-    "ShortVideoProposal",
     "DraftResult",
     "GenerateResult",
+    "ShortVideoProposal",
+    "TranscriptionResult",
+    "TranscriptionSegment",
 ]

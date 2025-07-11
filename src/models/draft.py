@@ -1,7 +1,7 @@
 """企画書関連のデータ構造"""
 
 from dataclasses import dataclass
-from typing import List
+
 from .transcription import TranscriptionResult
 
 
@@ -18,21 +18,18 @@ class ShortVideoProposal:
 
     Example:
         >>> proposal = ShortVideoProposal(
-        ...     title="面白いトーク集",
-        ...     start_time=30.0,
-        ...     end_time=90.0,
-        ...     caption="今日の面白い話をまとめました！",
-        ...     key_points=["ポイント1", "ポイント2"]
+        ...     title="面白いトーク集", start_time=30.0, end_time=90.0, caption="今日の面白い話をまとめました！", key_points=["ポイント1", "ポイント2"]
         ... )
         >>> print(f"タイトル: {proposal.title}")
         タイトル: 面白いトーク集
+
     """
 
     title: str
     start_time: float
     end_time: float
     caption: str
-    key_points: List[str]
+    key_points: list[str]
 
 
 @dataclass
@@ -47,13 +44,12 @@ class DraftResult:
         >>> from .transcription import TranscriptionSegment, TranscriptionResult
         >>> segments = [TranscriptionSegment(0.0, 10.0, "テスト")]
         >>> transcription = TranscriptionResult(segments, "テスト")
-        >>> proposals = [
-        ...     ShortVideoProposal("タイトル1", 0.0, 5.0, "キャプション1", ["ポイント1"])
-        ... ]
+        >>> proposals = [ShortVideoProposal("タイトル1", 0.0, 5.0, "キャプション1", ["ポイント1"])]
         >>> draft = DraftResult(proposals, transcription)
         >>> print(f"提案数: {len(draft.proposals)}")
         提案数: 1
+
     """
 
-    proposals: List[ShortVideoProposal]
+    proposals: list[ShortVideoProposal]
     original_transcription: TranscriptionResult

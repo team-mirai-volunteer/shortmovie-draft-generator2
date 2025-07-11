@@ -1,16 +1,23 @@
 """GenerateShortDraftUsecaseのテスト"""
 
-import pytest
-from unittest.mock import Mock, patch, mock_open
+import os
+import tempfile
+from unittest.mock import Mock, mock_open, patch
 
+import pytest
+
+from src.builders.prompt_builder import PromptBuilder
+from src.clients.chatgpt_client import ChatGPTClient
+from src.clients.whisper_client import WhisperClient
+from src.models.draft import DraftResult, ShortVideoProposal
+from src.models.result import GenerateResult
+from src.models.transcription import TranscriptionResult, TranscriptionSegment
+from src.service.draft_generator import DraftGenerator
+from src.service.srt_generator import SrtGenerator
 from src.usecases.generate_short_draft_usecase import (
     GenerateShortDraftUsecase,
     InputValidationError,
 )
-from src.service.srt_generator import SrtGenerator
-from src.models.result import GenerateResult
-from src.models.draft import DraftResult, ShortVideoProposal
-from src.models.transcription import TranscriptionResult, TranscriptionSegment
 
 
 class TestGenerateShortDraftUsecase:
@@ -38,7 +45,7 @@ class TestGenerateShortDraftUsecase:
                 end_time=10.0,
                 caption="テストキャプション",
                 key_points=["ポイント1", "ポイント2"],
-            )
+            ),
         ]
 
         self.sample_draft_result = DraftResult(
@@ -148,10 +155,10 @@ class TestGenerateShortDraftUsecase:
         mock_output_path.is_dir.return_value = True
 
         mock_draft_file_path = Mock()
-        mock_draft_file_path.__str__ = Mock(return_value="output/test_video_draft.md")
+        mock_draft_file_path.__str__ = Mock(return_value="output/test_video_draft.md")  # type: ignore[method-assign]
 
         mock_subtitle_file_path = Mock()
-        mock_subtitle_file_path.__str__ = Mock(return_value="output/test_video_subtitle.srt")
+        mock_subtitle_file_path.__str__ = Mock(return_value="output/test_video_subtitle.srt")  # type: ignore[method-assign]
 
         def path_side_effect(path_str):
             if path_str == "test_video.mp4":
@@ -204,7 +211,8 @@ class TestGenerateShortDraftUsecase:
 
         assert isinstance(result, GenerateResult)
         assert result.success is False
-        assert result.error_message is not None and "Test error" in result.error_message
+        assert result.error_message is not None
+        assert "Test error" in result.error_message
         assert result.draft_file_path == ""
         assert result.subtitle_file_path == ""
 
@@ -215,20 +223,12 @@ class TestGenerateShortDraftUsecaseIntegration:
 
     def test_full_workflow_integration(self):
         """完全なワークフローの統合テスト"""
-        import os
-        import tempfile
-
         if not os.getenv("INTEGRATION_TEST"):
             pytest.skip("統合テストはINTEGRATION_TEST=trueの場合のみ実行")
 
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             pytest.skip("OPENAI_API_KEYが設定されていません")
-
-        from src.clients.whisper_client import WhisperClient
-        from src.clients.chatgpt_client import ChatGPTClient
-        from src.builders.prompt_builder import PromptBuilder
-        from src.service.draft_generator import DraftGenerator
 
         whisper_client = WhisperClient(api_key)
         chatgpt_client = ChatGPTClient(api_key)
@@ -237,8 +237,6 @@ class TestGenerateShortDraftUsecaseIntegration:
 
         # SrtGeneratorのインスタンスを作成
         srt_generator = SrtGenerator()
-
-        from unittest.mock import Mock
 
         mock_google_drive_client = Mock()
 
@@ -260,7 +258,7 @@ class TestGenerateShortDraftUsecaseIntegration:
                     end_time=10.0,
                     caption="ショート動画作成の基本を学ぼう！ #ショート動画 #YouTube",
                     key_points=["冒頭2秒が重要", "視聴者の興味を引く", "簡潔な内容"],
-                )
+                ),
             ]
 
             draft_result = DraftResult(
@@ -275,12 +273,12 @@ class TestGenerateShortDraftUsecaseIntegration:
                 assert os.path.exists(result.draft_file_path)
                 assert os.path.exists(result.subtitle_file_path)
 
-                with open(result.draft_file_path, "r", encoding="utf-8") as f:
+                with open(result.draft_file_path, encoding="utf-8") as f:
                     draft_content = f.read()
                     assert "# ショート動画企画書" in draft_content
                     assert "ショート動画作成のコツ" in draft_content
 
-                with open(result.subtitle_file_path, "r", encoding="utf-8") as f:
+                with open(result.subtitle_file_path, encoding="utf-8") as f:
                     subtitle_content = f.read()
                     assert "00:00:00,000 --> 00:00:05,000" in subtitle_content
                     assert "こんにちは、今日はショート動画について話します" in subtitle_content

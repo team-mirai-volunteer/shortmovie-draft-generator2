@@ -2,7 +2,8 @@
 
 import json
 import time
-from typing import Dict, Any, Optional, List
+from typing import Any
+
 from openai import OpenAI
 
 from ..models.draft import ShortVideoProposal
@@ -11,8 +12,6 @@ from ..models.draft import ShortVideoProposal
 class ChatGPTClientError(Exception):
     """ChatGPTClient関連のベース例外"""
 
-    pass
-
 
 class ChatGPTAPIError(ChatGPTClientError):
     """ChatGPT API呼び出しエラー"""
@@ -20,8 +19,8 @@ class ChatGPTAPIError(ChatGPTClientError):
     def __init__(
         self,
         message: str,
-        status_code: Optional[int] = None,
-        retry_after: Optional[int] = None,
+        status_code: int | None = None,
+        retry_after: int | None = None,
     ):
         super().__init__(message)
         self.status_code = status_code
@@ -39,7 +38,7 @@ class JSONParseError(ChatGPTClientError):
 class ValidationError(ChatGPTClientError):
     """レスポンス内容検証エラー"""
 
-    def __init__(self, message: str, field_name: Optional[str] = None):
+    def __init__(self, message: str, field_name: str | None = None):
         super().__init__(message)
         self.field_name = field_name
 
@@ -55,6 +54,7 @@ class ChatGPTClient:
         >>> response = client.generate_draft(prompt)
         >>> print(f"生成された企画数: {len(response)}")
         生成された企画数: 5
+
     """
 
     def __init__(self, api_key: str, model: str = "gpt-4") -> None:
@@ -66,6 +66,7 @@ class ChatGPTClient:
 
         Raises:
             ValueError: APIキーが無効な場合
+
         """
         if not api_key or not api_key.strip():
             raise ValueError("APIキーが指定されていません")
@@ -74,7 +75,7 @@ class ChatGPTClient:
         self.model = model
         self.client = OpenAI(api_key=api_key)
 
-    def generate_draft(self, prompt: str) -> List[ShortVideoProposal]:
+    def generate_draft(self, prompt: str) -> list[ShortVideoProposal]:
         """企画書生成用プロンプトからJSON形式の企画書を生成
 
         Args:
@@ -87,6 +88,7 @@ class ChatGPTClient:
             ChatGPTAPIError: API呼び出しに失敗した場合
             JSONParseError: レスポンスのJSON解析に失敗した場合
             ValidationError: レスポンス内容が期待する形式でない場合
+
         """
         self._validate_prompt(prompt)
 
@@ -104,6 +106,7 @@ class ChatGPTClient:
 
         Raises:
             ValueError: プロンプトが無効な場合
+
         """
         if not prompt or not prompt.strip():
             raise ValueError("プロンプトが空です")
@@ -123,6 +126,7 @@ class ChatGPTClient:
 
         Raises:
             ChatGPTAPIError: API呼び出しに失敗した場合
+
         """
         last_exception = None
 
@@ -143,7 +147,7 @@ class ChatGPTClient:
             except Exception as e:
                 last_exception = e
 
-                if hasattr(e, "status_code") and getattr(e, "status_code") == 429:
+                if hasattr(e, "status_code") and e.status_code == 429:
                     retry_after = getattr(e, "retry_after", 60)
                     if attempt < max_retries - 1:
                         time.sleep(retry_after)
@@ -152,9 +156,9 @@ class ChatGPTClient:
                 if attempt < max_retries - 1:
                     time.sleep(2**attempt)
 
-        raise ChatGPTAPIError(f"ChatGPT API呼び出しが{max_retries}回失敗しました: {str(last_exception)}")
+        raise ChatGPTAPIError(f"ChatGPT API呼び出しが{max_retries}回失敗しました: {last_exception!s}")
 
-    def _parse_json_response(self, raw_response: str) -> Dict[str, Any]:
+    def _parse_json_response(self, raw_response: str) -> dict[str, Any]:
         """レスポンステキストからJSONを抽出・解析
 
         Args:
@@ -165,14 +169,13 @@ class ChatGPTClient:
 
         Raises:
             JSONParseError: JSON解析に失敗した場合
+
         """
         try:
             cleaned_response = raw_response.strip()
 
-            if cleaned_response.startswith("```json"):
-                cleaned_response = cleaned_response[7:]
-            if cleaned_response.endswith("```"):
-                cleaned_response = cleaned_response[:-3]
+            cleaned_response = cleaned_response.removeprefix("```json")
+            cleaned_response = cleaned_response.removesuffix("```")
 
             cleaned_response = cleaned_response.strip()
 
@@ -182,9 +185,9 @@ class ChatGPTClient:
             return parsed_data
 
         except json.JSONDecodeError as e:
-            raise JSONParseError(f"JSONの解析に失敗しました: {str(e)}", raw_response)
+            raise JSONParseError(f"JSONの解析に失敗しました: {e!s}", raw_response) from e
 
-    def _validate_response_structure(self, data: Dict[str, Any]) -> None:
+    def _validate_response_structure(self, data: dict[str, Any]) -> None:
         """レスポンスJSONの構造検証
 
         Args:
@@ -192,6 +195,7 @@ class ChatGPTClient:
 
         Raises:
             ValidationError: レスポンス構造が期待する形式でない場合
+
         """
         if "items" not in data:
             raise ValidationError("レスポンスに'items'フィールドがありません")
@@ -224,7 +228,7 @@ class ChatGPTClient:
             if not isinstance(item["key_points"], list):
                 raise ValidationError(f"アイテム{i}の'key_points'がリスト形式ではありません")
 
-    def _convert_to_proposals(self, data: Dict[str, Any]) -> List[ShortVideoProposal]:
+    def _convert_to_proposals(self, data: dict[str, Any]) -> list[ShortVideoProposal]:
         """JSONデータをShortVideoProposalオブジェクトのリストに変換
 
         Args:
@@ -232,6 +236,7 @@ class ChatGPTClient:
 
         Returns:
             ShortVideoProposalオブジェクトのリスト
+
         """
         proposals = []
 
@@ -261,6 +266,7 @@ class ChatGPTClient:
 
         Raises:
             ValueError: 時刻形式が無効な場合
+
         """
         try:
             parts = time_str.split(":")
@@ -274,4 +280,4 @@ class ChatGPTClient:
             return hours * 3600 + minutes * 60 + seconds
 
         except (ValueError, IndexError) as e:
-            raise ValueError(f"時刻の解析に失敗しました: {time_str} - {str(e)}")
+            raise ValueError(f"時刻の解析に失敗しました: {time_str} - {e!s}") from e

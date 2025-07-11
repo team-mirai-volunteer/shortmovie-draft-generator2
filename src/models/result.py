@@ -1,7 +1,6 @@
 """結果・レスポンス関連のデータ構造"""
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -18,31 +17,23 @@ class GenerateResult:
 
     Example:
         成功時:
-        >>> result = GenerateResult(
-        ...     draft_file_path="output/draft.md",
-        ...     subtitle_file_path="output/subtitle.srt",
-        ...     success=True
-        ... )
+        >>> result = GenerateResult(draft_file_path="output/draft.md", subtitle_file_path="output/subtitle.srt", success=True)
         >>> print(f"処理結果: {'成功' if result.success else '失敗'}")
         処理結果: 成功
 
         失敗時:
-        >>> error_result = GenerateResult(
-        ...     draft_file_path="",
-        ...     subtitle_file_path="",
-        ...     success=False,
-        ...     error_message="API呼び出しに失敗しました"
-        ... )
+        >>> error_result = GenerateResult(draft_file_path="", subtitle_file_path="", success=False, error_message="API呼び出しに失敗しました")
         >>> print(f"エラー: {error_result.error_message}")
         エラー: API呼び出しに失敗しました
+
     """
 
     draft_file_path: str
     subtitle_file_path: str
     success: bool
-    uploaded_draft_url: Optional[str] = None
-    uploaded_subtitle_url: Optional[str] = None
-    error_message: Optional[str] = None
+    uploaded_draft_url: str | None = None
+    uploaded_subtitle_url: str | None = None
+    error_message: str | None = None
 
 
 @dataclass
@@ -50,13 +41,13 @@ class GoogleDriveBatchResult:
     """Google Driveバッチ処理結果"""
 
     success: bool
-    processed_video: Optional[str] = None
-    output_folder_id: Optional[str] = None
-    draft_url: Optional[str] = None
-    subtitle_url: Optional[str] = None
-    video_url: Optional[str] = None
-    message: Optional[str] = None
-    error_message: Optional[str] = None
+    processed_video: str | None = None
+    output_folder_id: str | None = None
+    draft_url: str | None = None
+    subtitle_url: str | None = None
+    video_url: str | None = None
+    message: str | None = None
+    error_message: str | None = None
 
     @classmethod
     def no_unprocessed_videos(cls) -> "GoogleDriveBatchResult":

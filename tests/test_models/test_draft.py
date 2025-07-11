@@ -1,7 +1,7 @@
 """draft.pyのテスト"""
 
-from src.models.transcription import TranscriptionSegment, TranscriptionResult
-from src.models.draft import ShortVideoProposal, DraftResult
+from src.models.draft import DraftResult, ShortVideoProposal
+from src.models.transcription import TranscriptionResult, TranscriptionSegment
 
 
 class TestShortVideoProposal:
@@ -113,7 +113,7 @@ class TestDraftResult:
                 end_time=5.0,
                 caption="キャプション1",
                 key_points=["ポイント1"],
-            )
+            ),
         ]
 
     def test_instance_creation(self):
@@ -144,7 +144,7 @@ class TestDraftResult:
                 end_time=5.0,
                 caption="別のキャプション",
                 key_points=["別のポイント"],
-            )
+            ),
         ]
         draft3 = DraftResult(
             proposals=different_proposals,
@@ -236,7 +236,7 @@ class TestSampleData:
                 end_time=5.0,
                 caption="キャプション1",
                 key_points=["ポイント1"],
-            )
+            ),
         ]
 
         draft = DraftResult(proposals, transcription)

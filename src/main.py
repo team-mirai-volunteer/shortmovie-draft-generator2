@@ -3,13 +3,14 @@
 import os
 import sys
 from pathlib import Path
+
 import click
 from dotenv import load_dotenv
 
-from src.clients.whisper_client import WhisperClient
+from src.builders.prompt_builder import PromptBuilder
 from src.clients.chatgpt_client import ChatGPTClient
 from src.clients.google_drive_client import GoogleDriveClient
-from src.builders.prompt_builder import PromptBuilder
+from src.clients.whisper_client import WhisperClient
 from src.service.draft_generator import DraftGenerator
 from src.service.srt_generator import SrtGenerator
 from src.usecases.generate_short_draft_usecase import GenerateShortDraftUsecase
@@ -80,6 +81,7 @@ class DIContainer:
 
         Raises:
             SystemExit: 環境変数が設定されていない場合
+
         """
         value = os.getenv(key)
         if not value:
@@ -171,7 +173,10 @@ def main(
 
         if upload:
             if not upload_folder_id and not container.generate_usecase.upload_folder_id:
-                click.echo("❌ アップロードを有効にする場合は --upload-folder-id オプションまたは GOOGLE_DRIVE_UPLOAD_FOLDER_ID 環境変数を設定してください", err=True)
+                click.echo(
+                    "❌ アップロードを有効にする場合は --upload-folder-id オプションまたは GOOGLE_DRIVE_UPLOAD_FOLDER_ID 環境変数を設定してください",
+                    err=True,
+                )
                 sys.exit(1)
 
             if not container.generate_usecase.google_drive_client:
@@ -246,9 +251,9 @@ def main(
         click.echo("\n⚠️  処理が中断されました", err=True)
         sys.exit(1)
     except Exception as e:
-        click.echo(f"❌ 予期しないエラーが発生しました: {str(e)}", err=True)
+        click.echo(f"❌ 予期しないエラーが発生しました: {e!s}", err=True)
         if verbose:
-            import traceback
+            import traceback  # noqa: PLC0415
 
             click.echo("\nスタックトレース:", err=True)
             click.echo(traceback.format_exc(), err=True)

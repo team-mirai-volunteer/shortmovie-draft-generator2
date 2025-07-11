@@ -1,6 +1,6 @@
 """transcription.pyのテスト"""
 
-from src.models.transcription import TranscriptionSegment, TranscriptionResult
+from src.models.transcription import TranscriptionResult, TranscriptionSegment
 
 
 class TestTranscriptionSegment:

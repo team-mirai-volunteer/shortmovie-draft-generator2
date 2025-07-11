@@ -13,12 +13,14 @@ class VideoSource(Protocol):
         >>> class LocalVideoSource:
         ...     def get_video_path(self, output_dir: str) -> str:
         ...         return "/path/to/local/video.mp4"
+        ...
         ...     def cleanup(self) -> None:
         ...         pass
         >>> source = LocalVideoSource()
         >>> path = source.get_video_path("output/")
         >>> print(f"動画パス: {path}")
         動画パス: /path/to/local/video.mp4
+
     """
 
     def get_video_path(self, output_dir: str) -> str:
@@ -29,6 +31,7 @@ class VideoSource(Protocol):
 
         Returns:
             動画ファイルのパス
+
         """
         ...
 
