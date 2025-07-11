@@ -43,3 +43,27 @@ class GenerateResult:
     uploaded_draft_url: Optional[str] = None
     uploaded_subtitle_url: Optional[str] = None
     error_message: Optional[str] = None
+
+
+@dataclass
+class GoogleDriveBatchResult:
+    """Google Driveバッチ処理結果"""
+
+    success: bool
+    processed_video: Optional[str] = None
+    output_folder_id: Optional[str] = None
+    draft_url: Optional[str] = None
+    subtitle_url: Optional[str] = None
+    video_url: Optional[str] = None
+    message: Optional[str] = None
+    error_message: Optional[str] = None
+
+    @classmethod
+    def no_unprocessed_videos(cls) -> "GoogleDriveBatchResult":
+        """処理対象がない場合の結果"""
+        return cls(success=True, message="処理対象の動画がありません")
+
+    @classmethod
+    def from_error(cls, error_message: str) -> "GoogleDriveBatchResult":
+        """エラー結果の生成"""
+        return cls(success=False, error_message=error_message)

@@ -312,6 +312,7 @@ class GoogleDriveClient:
                         name=file_name,
                         file_id=file_data["id"],
                         download_url=f"https://drive.google.com/uc?export=download&id={file_data['id']}",
+                        mime_type=mime_type,
                         size=int(file_data.get("size", 0)) if file_data.get("size") else None,
                     )
                 )
@@ -396,19 +397,39 @@ class GoogleDriveClient:
             print(f"DEBUG: フォルダ作成完了: {folder_name} (ID: {folder_id})")
 
             if folder_id:
-                return folder_id
+                return str(folder_id)
             else:
                 raise GoogleDriveError("フォルダ作成後のIDが取得できませんでした")
 
         except Exception as e:
             raise GoogleDriveError(f"フォルダの作成に失敗しました: {str(e)}")
 
+    def folder_exists(self, parent_folder_id: str, folder_name: str) -> bool:
+        """指定した親フォルダ内に特定の名前のフォルダが存在するかチェック"""
+        try:
+            query = f"'{parent_folder_id}' in parents and name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+
+            results = self.service.files().list(q=query, fields="files(id,name)", supportsAllDrives=True, includeItemsFromAllDrives=True).execute()
+
+            return len(results.get("files", [])) > 0
+
+        except Exception as e:
+            raise GoogleDriveError(f"フォルダ存在チェックに失敗しました: {str(e)}")
+
+    def list_folders(self, folder_url: str) -> List[DriveFile]:
+        """フォルダ内のサブフォルダ一覧を取得"""
+        try:
+            folder = self.list_files(folder_url)
+            return [f for f in folder.files if f.mime_type == "application/vnd.google-apps.folder"]
+        except Exception as e:
+            raise GoogleDriveError(f"サブフォルダ一覧の取得に失敗しました: {str(e)}")
+
     def _get_service_account_email(self) -> str:
         """サービスアカウントのメールアドレスを取得"""
         try:
             with open(self.service_account_path, "r") as f:
                 service_account_info = json.load(f)
-                email = service_account_info.get('client_email')
-                return str(email) if email is not None else 'unknown'
-        except:
-            return 'unknown'
+                email = service_account_info.get("client_email")
+                return str(email) if email is not None else "unknown"
+        except Exception:
+            return "unknown"
