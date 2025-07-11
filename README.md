@@ -130,14 +130,6 @@ sudo apt install ffmpeg
 poetry run python src/main.py --drive-batch
 ```
 
-#### 連続して処理したい場合は下記の shell script から実行できます
-
-すべての未処理動画を順次処理：
-
-```bash
-./process_all_videos.sh
-```
-
 #### 処理の流れ
 
 1. `INPUT_DRIVE_FOLDER`から未処理の動画を 1 つ検出
