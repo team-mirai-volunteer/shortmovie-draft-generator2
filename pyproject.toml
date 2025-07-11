@@ -1,37 +1,44 @@
-[tool.poetry]
+[project]
 name = "shortmovie-draft-generator2"
 version = "0.1.0"
 description = "ショート動画設計図生成プロジェクト"
-authors = ["Your Name <your.email@example.com>"]
+authors = [{ name = "Your Name", email = "your.email@example.com" }]
+requires-python = "~=3.9"
 readme = "README.md"
-packages = [{include = "src"}]
+dependencies = [
+    "openai>=1.0.0,<2",
+    "python-dotenv>=1.0.0,<2",
+    "click>=8.0.0,<9",
+    "ffmpeg-python>=0.2.0,<0.3",
+    "requests>=2.31.0,<3",
+    "google-auth>=2.23.0,<3",
+    "google-auth-oauthlib>=1.1.0,<2",
+    "google-auth-httplib2>=0.2.0,<0.3",
+    "google-api-python-client>=2.100.0,<3",
+]
 
-[tool.poetry.scripts]
+[project.scripts]
 shortmovie-draft-generator = "src.main:main"
 
-[tool.poetry.dependencies]
-python = "^3.9"
-openai = "^1.0.0"
-python-dotenv = "^1.0.0"
-click = "^8.0.0"
-ffmpeg-python = "^0.2.0"
-requests = "^2.31.0"
-google-auth = "^2.23.0"
-google-auth-oauthlib = "^1.1.0"
-google-auth-httplib2 = "^0.2.0"
-google-api-python-client = "^2.100.0"
+[dependency-groups]
+dev = [
+    "mypy>=1.0.0,<2",
+    "pytest>=7.0.0,<8",
+    "black>=23.0.0,<24",
+    "flake8>=6.0.0,<7",
+    "pytest-cov>=4.0.0,<5",
+    "types-requests>=2.32.4.20250611,<3",
+]
 
-[tool.poetry.group.dev.dependencies]
-mypy = "^1.0.0"
-pytest = "^7.0.0"
-black = "^23.0.0"
-flake8 = "^6.0.0"
-pytest-cov = "^4.0.0"
-types-requests = "^2.32.4.20250611"
+[tool.hatch.build.targets.sdist]
+include = ["src"]
+
+[tool.hatch.build.targets.wheel]
+include = ["src"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.mypy]
 python_version = "3.9"
