@@ -28,6 +28,7 @@ class DriveFile:
     name: str
     file_id: str
     download_url: str
+    mime_type: str = ""
     size: Optional[int] = None
 
 

@@ -21,9 +21,7 @@ class TestGenerateShortDraftUsecase:
         self.mock_draft_generator = Mock()
         self.mock_srt_generator = Mock()
         self.mock_google_drive_client = Mock()
-        self.usecase = GenerateShortDraftUsecase(
-            self.mock_draft_generator, self.mock_srt_generator, self.mock_google_drive_client
-        )
+        self.usecase = GenerateShortDraftUsecase(self.mock_draft_generator, self.mock_srt_generator, self.mock_google_drive_client)
 
         self.sample_transcription = TranscriptionResult(
             segments=[
@@ -56,9 +54,7 @@ class TestGenerateShortDraftUsecase:
 
     def test_validate_inputs_empty_video_path(self):
         """空の動画パスの検証エラーテスト"""
-        with pytest.raises(
-            InputValidationError, match="動画ファイルパスが指定されていません"
-        ):
+        with pytest.raises(InputValidationError, match="動画ファイルパスが指定されていません"):
             self.usecase._validate_inputs("", "output/")
 
     @patch("os.path.exists")
@@ -74,9 +70,7 @@ class TestGenerateShortDraftUsecase:
         """ファイルでないパスの検証エラーテスト"""
         mock_exists.return_value = True
         mock_isfile.return_value = False
-        with pytest.raises(
-            InputValidationError, match="指定されたパスはファイルではありません"
-        ):
+        with pytest.raises(InputValidationError, match="指定されたパスはファイルではありません"):
             self.usecase._validate_inputs("directory/", "output/")
 
     @patch("os.path.exists")
@@ -85,9 +79,7 @@ class TestGenerateShortDraftUsecase:
         """空の出力ディレクトリの検証エラーテスト"""
         mock_exists.return_value = True
         mock_isfile.return_value = True
-        with pytest.raises(
-            InputValidationError, match="出力ディレクトリが指定されていません"
-        ):
+        with pytest.raises(InputValidationError, match="出力ディレクトリが指定されていません"):
             self.usecase._validate_inputs("video.mp4", "")
 
     @patch("os.path.exists")
@@ -96,9 +88,7 @@ class TestGenerateShortDraftUsecase:
         """サポートされていないファイル形式の検証エラーテスト"""
         mock_exists.return_value = True
         mock_isfile.return_value = True
-        with pytest.raises(
-            InputValidationError, match="サポートされていないファイル形式です"
-        ):
+        with pytest.raises(InputValidationError, match="サポートされていないファイル形式です"):
             self.usecase._validate_inputs("video.txt", "output/")
 
     @patch("os.path.exists")
@@ -128,9 +118,7 @@ class TestGenerateShortDraftUsecase:
 
     def test_build_markdown_content(self):
         """Markdown内容構築のテスト"""
-        content = self.usecase._build_markdown_content(
-            self.sample_draft_result, "test_video.mp4"
-        )
+        content = self.usecase._build_markdown_content(self.sample_draft_result, "test_video.mp4")
 
         assert "# ショート動画企画書" in content
         assert "**元動画**: test_video.mp4" in content
@@ -163,9 +151,7 @@ class TestGenerateShortDraftUsecase:
         mock_draft_file_path.__str__ = Mock(return_value="output/test_video_draft.md")
 
         mock_subtitle_file_path = Mock()
-        mock_subtitle_file_path.__str__ = Mock(
-            return_value="output/test_video_subtitle.srt"
-        )
+        mock_subtitle_file_path.__str__ = Mock(return_value="output/test_video_subtitle.srt")
 
         def path_side_effect(path_str):
             if path_str == "test_video.mp4":
@@ -178,16 +164,10 @@ class TestGenerateShortDraftUsecase:
         mock_path.side_effect = path_side_effect
 
         mock_output_path.__truediv__ = Mock()
-        mock_output_path.__truediv__.side_effect = lambda x: (
-            mock_draft_file_path if "draft" in x else mock_subtitle_file_path
-        )
+        mock_output_path.__truediv__.side_effect = lambda x: (mock_draft_file_path if "draft" in x else mock_subtitle_file_path)
 
-        self.mock_draft_generator.generate_from_video.return_value = (
-            self.sample_draft_result
-        )
-        self.mock_srt_generator.generate_srt_file.return_value = (
-            "output/test_video_subtitle.srt"
-        )
+        self.mock_draft_generator.generate_from_video.return_value = self.sample_draft_result
+        self.mock_srt_generator.generate_srt_file.return_value = "output/test_video_subtitle.srt"
 
         result = self.usecase.execute("test_video.mp4", "output/")
 
@@ -197,17 +177,12 @@ class TestGenerateShortDraftUsecase:
         assert "test_video_draft.md" in result.draft_file_path
         assert "test_video_subtitle.srt" in result.subtitle_file_path
 
-        self.mock_draft_generator.generate_from_video.assert_called_once_with(
-            "test_video.mp4", "output/"
-        )
+        self.mock_draft_generator.generate_from_video.assert_called_once_with("test_video.mp4", "output/")
 
         # SrtGeneratorのメソッド呼び出しを検証
         self.mock_srt_generator.generate_srt_file.assert_called_once()
         # 第1引数がTranscriptionResultであることを確認
-        assert (
-            self.mock_srt_generator.generate_srt_file.call_args[0][0]
-            == self.sample_transcription
-        )
+        assert self.mock_srt_generator.generate_srt_file.call_args[0][0] == self.sample_transcription
 
     @patch("os.path.exists")
     @patch("os.path.isfile")
@@ -223,9 +198,7 @@ class TestGenerateShortDraftUsecase:
         mock_path_instance.suffix.lower.return_value = ".mp4"
         mock_path.return_value = mock_path_instance
 
-        self.mock_draft_generator.generate_from_video.side_effect = Exception(
-            "Test error"
-        )
+        self.mock_draft_generator.generate_from_video.side_effect = Exception("Test error")
 
         result = self.usecase.execute("test_video.mp4", "output/")
 
@@ -266,16 +239,15 @@ class TestGenerateShortDraftUsecaseIntegration:
         srt_generator = SrtGenerator()
 
         from unittest.mock import Mock
+
         mock_google_drive_client = Mock()
-        
+
         usecase = GenerateShortDraftUsecase(draft_generator, srt_generator, mock_google_drive_client)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             sample_transcription = TranscriptionResult(
                 segments=[
-                    TranscriptionSegment(
-                        0.0, 5.0, "こんにちは、今日はショート動画について話します"
-                    ),
+                    TranscriptionSegment(0.0, 5.0, "こんにちは、今日はショート動画について話します"),
                     TranscriptionSegment(5.0, 10.0, "最初に重要なのは冒頭の2秒です"),
                 ],
                 full_text="こんにちは、今日はショート動画について話します。最初に重要なのは冒頭の2秒です。",
@@ -296,9 +268,7 @@ class TestGenerateShortDraftUsecaseIntegration:
                 original_transcription=sample_transcription,
             )
 
-            with patch.object(
-                draft_generator, "generate_from_video", return_value=draft_result
-            ):
+            with patch.object(draft_generator, "generate_from_video", return_value=draft_result):
                 result = usecase.execute("dummy_video.mp4", temp_dir)
 
                 assert result.success is True
@@ -313,7 +283,4 @@ class TestGenerateShortDraftUsecaseIntegration:
                 with open(result.subtitle_file_path, "r", encoding="utf-8") as f:
                     subtitle_content = f.read()
                     assert "00:00:00,000 --> 00:00:05,000" in subtitle_content
-                    assert (
-                        "こんにちは、今日はショート動画について話します"
-                        in subtitle_content
-                    )
+                    assert "こんにちは、今日はショート動画について話します" in subtitle_content
