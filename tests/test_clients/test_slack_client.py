@@ -1,11 +1,10 @@
 """SlackClientのテスト"""
 
-import unittest
-from unittest.mock import patch, MagicMock
 import json
-import time
+import unittest
+from unittest.mock import MagicMock, patch
+
 import requests
-from datetime import datetime
 
 from src.clients.slack_client import (
     SlackClient,
@@ -146,7 +145,8 @@ class TestSlackClient(unittest.TestCase):
         fields = payload["attachments"][0]["fields"]
         error_field = next((f for f in fields if f["title"] == "エラー内容"), None)
         self.assertIsNotNone(error_field)
-        self.assertEqual(error_field["value"], "テストエラーが発生しました")
+        if error_field is not None:
+            self.assertEqual(error_field["value"], "テストエラーが発生しました")
 
     def test_validate_message(self):
         """メッセージバリデーションテスト"""
@@ -273,6 +273,57 @@ class TestSlackClient(unittest.TestCase):
         # 検証
         self.assertEqual(mock_post.call_count, 3)  # 3回呼ばれたことを確認
         self.assertEqual(mock_sleep.call_count, 2)  # 2回sleepが呼ばれたことを確認
+
+    @patch("requests.post")
+    def test_send_video_processing_start(self, mock_post):
+        """動画処理開始通知のテスト"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = "ok"
+        mock_post.return_value = mock_response
+
+        self.client.send_video_processing_start("test_video.mp4", "https://drive.google.com/file/d/123/view")
+
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+        payload = json.loads(json.dumps(call_args[1]["json"]))
+
+        expected_message = "🎬 動画処理を開始しました\n📁 ファイル名: test_video.mp4\n🔗 URL: https://drive.google.com/file/d/123/view"
+        self.assertEqual(payload["text"], expected_message)
+
+    @patch("requests.post")
+    def test_send_video_processing_success(self, mock_post):
+        """動画処理成功通知のテスト"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = "ok"
+        mock_post.return_value = mock_response
+
+        self.client.send_video_processing_success("test_video.mp4", "https://drive.google.com/drive/folders/456", 45.2)
+
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+        payload = json.loads(json.dumps(call_args[1]["json"]))
+
+        expected_message = "✅ 台本生成が完了しました\n📁 ファイル名: test_video.mp4\n📂 出力フォルダ: https://drive.google.com/drive/folders/456\n⏱️ 処理時間: 45.2秒"
+        self.assertEqual(payload["text"], expected_message)
+
+    @patch("requests.post")
+    def test_send_video_processing_error(self, mock_post):
+        """動画処理失敗通知のテスト"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = "ok"
+        mock_post.return_value = mock_response
+
+        self.client.send_video_processing_error("test_video.mp4", "音声の文字起こしに失敗しました")
+
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+        payload = json.loads(json.dumps(call_args[1]["json"]))
+
+        expected_message = "❌ 台本生成に失敗しました\n📁 ファイル名: test_video.mp4\n💥 エラー理由: 音声の文字起こしに失敗しました"
+        self.assertEqual(payload["text"], expected_message)
 
 
 if __name__ == "__main__":

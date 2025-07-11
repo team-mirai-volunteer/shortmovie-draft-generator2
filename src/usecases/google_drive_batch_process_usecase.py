@@ -1,10 +1,12 @@
 """Google Drive間バッチ処理ユースケース"""
 
 import tempfile
+import time
 from pathlib import Path
 from typing import Optional
 
 from ..clients.google_drive_client import GoogleDriveClient, GoogleDriveError
+from ..clients.slack_client import SlackClient
 from ..models.drive import DriveFile
 from ..models.result import GoogleDriveBatchResult
 from .generate_short_draft_usecase import GenerateShortDraftUsecase
@@ -17,12 +19,18 @@ class GoogleDriveBatchProcessUsecase:
     既存の_find_unprocessed_videoロジックをGoogle Drive対応に拡張する。
     """
 
-    def __init__(self, generate_usecase: GenerateShortDraftUsecase, google_drive_client: GoogleDriveClient):
+    def __init__(
+        self,
+        generate_usecase: GenerateShortDraftUsecase,
+        google_drive_client: GoogleDriveClient,
+        slack_client: Optional[SlackClient] = None,
+    ):
         self.generate_usecase = generate_usecase
         self.google_drive_client = google_drive_client
+        self.slack_client = slack_client
 
     def execute_drive_batch(self, input_folder_url: str, output_folder_url: str) -> GoogleDriveBatchResult:
-        """Google Drive間でのバッチ処理実行
+        """Google Drive間でのバッチ処理実行（Slack通知統合版）
 
         Args:
             input_folder_url: 入力Google DriveフォルダURL
@@ -31,11 +39,20 @@ class GoogleDriveBatchProcessUsecase:
         Returns:
             処理結果（GoogleDriveBatchResult）
         """
+        start_time = time.time()
+
         try:
             unprocessed_video = self._find_unprocessed_video_from_drive(input_folder_url, output_folder_url)
 
             if not unprocessed_video:
                 return GoogleDriveBatchResult.no_unprocessed_videos()
+
+            if self.slack_client:
+                video_url = f"https://drive.google.com/file/d/{unprocessed_video.file_id}/view"
+                self.slack_client.send_video_processing_start(
+                    unprocessed_video.name,
+                    video_url
+                )
 
             video_name = Path(unprocessed_video.name).stem
             output_folder_id = self.google_drive_client.extract_folder_id(output_folder_url)
@@ -53,11 +70,25 @@ class GoogleDriveBatchProcessUsecase:
                 result = self.generate_usecase.execute(video_path, temp_dir)
 
                 if not result.success:
+                    if self.slack_client:
+                        self.slack_client.send_video_processing_error(
+                            unprocessed_video.name,
+                            result.error_message or "処理に失敗しました"
+                        )
                     return GoogleDriveBatchResult.from_error(result.error_message or "処理に失敗しました")
 
                 draft_url = self.google_drive_client.upload_file(result.draft_file_path, output_subfolder_id)
                 subtitle_url = self.google_drive_client.upload_file(result.subtitle_file_path, output_subfolder_id)
                 video_url = self.google_drive_client.upload_file(video_path, output_subfolder_id)
+
+                if self.slack_client:
+                    output_folder_url = f"https://drive.google.com/drive/folders/{output_subfolder_id}"
+                    processing_time = time.time() - start_time
+                    self.slack_client.send_video_processing_success(
+                        unprocessed_video.name,
+                        output_folder_url,
+                        processing_time
+                    )
 
                 return GoogleDriveBatchResult(
                     success=True,
@@ -70,6 +101,11 @@ class GoogleDriveBatchProcessUsecase:
                 )
 
         except Exception as e:
+            if self.slack_client and 'unprocessed_video' in locals() and unprocessed_video is not None:
+                self.slack_client.send_video_processing_error(
+                    unprocessed_video.name,
+                    str(e)
+                )
             return GoogleDriveBatchResult.from_error(str(e))
 
     def _find_unprocessed_video_from_drive(self, input_folder_url: str, output_folder_url: str) -> Optional[DriveFile]:

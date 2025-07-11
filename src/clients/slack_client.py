@@ -1,6 +1,5 @@
 """Slack WebHook APIクライアントモジュール"""
 
-import json
 import time
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
@@ -199,6 +198,64 @@ class SlackClient:
                     continue
 
         raise SlackWebHookError(f"Slack WebHook API呼び出しが{max_retries}回失敗しました: {str(last_exception)}")
+
+    def send_video_processing_start(self, video_name: str, video_url: str) -> None:
+        """動画処理開始通知を送信
+
+        Args:
+            video_name: 処理対象の動画ファイル名
+            video_url: Google Drive上の動画URL
+        """
+        try:
+            message = f"🎬 動画処理を開始しました\n" \
+                     f"📁 ファイル名: {video_name}\n" \
+                     f"🔗 URL: {video_url}"
+
+            self.send_message(message)
+
+        except Exception as e:
+            print(f"警告: Slack通知の送信に失敗しました: {e}")
+
+    def send_video_processing_success(
+        self,
+        video_name: str,
+        output_folder_url: str,
+        processing_time: float
+    ) -> None:
+        """動画処理成功通知を送信
+
+        Args:
+            video_name: 処理完了した動画ファイル名
+            output_folder_url: 出力フォルダのGoogle Drive URL
+            processing_time: 処理時間（秒）
+        """
+        try:
+            message = f"✅ 台本生成が完了しました\n" \
+                     f"📁 ファイル名: {video_name}\n" \
+                     f"📂 出力フォルダ: {output_folder_url}\n" \
+                     f"⏱️ 処理時間: {processing_time:.1f}秒"
+
+            self.send_message(message)
+
+        except Exception as e:
+            print(f"警告: Slack通知の送信に失敗しました: {e}")
+
+    def send_video_processing_error(self, video_name: str, error_message: str) -> None:
+        """動画処理失敗通知を送信
+
+        Args:
+            video_name: 処理に失敗した動画ファイル名
+            error_message: エラーメッセージ
+        """
+        try:
+            message = f"❌ 台本生成に失敗しました\n" \
+                     f"📁 ファイル名: {video_name}\n" \
+                     f"💥 エラー理由: {error_message}"
+
+            self.send_message(message)
+
+        except Exception as e:
+            print(f"警告: Slack通知の送信に失敗しました: {e}")
 
     def _validate_message(self, message: str) -> None:
         """メッセージの妥当性チェック

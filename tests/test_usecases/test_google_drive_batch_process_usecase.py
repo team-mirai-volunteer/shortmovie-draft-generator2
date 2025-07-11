@@ -14,7 +14,12 @@ class TestGoogleDriveBatchProcessUsecase:
         """テストセットアップ"""
         self.mock_generate_usecase = Mock()
         self.mock_google_drive_client = Mock()
-        self.usecase = GoogleDriveBatchProcessUsecase(self.mock_generate_usecase, self.mock_google_drive_client)
+        self.mock_slack_client = Mock()
+        self.usecase = GoogleDriveBatchProcessUsecase(
+            self.mock_generate_usecase,
+            self.mock_google_drive_client,
+            self.mock_slack_client
+        )
 
     def test_execute_drive_batch_success(self):
         """正常なバッチ処理のテスト"""
@@ -72,3 +77,26 @@ class TestGoogleDriveBatchProcessUsecase:
 
         assert self.usecase._is_video_file(video_file) is True
         assert self.usecase._is_video_file(non_video_file) is False
+
+    def test_execute_drive_batch_with_slack_notifications(self):
+        """Slack通知統合のテスト"""
+        video_file = DriveFile(name="test_video.mp4", file_id="file123", download_url="url", mime_type="video/mp4", size=1024)
+        self.usecase._find_unprocessed_video_from_drive = Mock(return_value=video_file)
+        self.mock_google_drive_client.extract_folder_id.return_value = "output_folder_id"
+        self.mock_google_drive_client.folder_exists.return_value = False
+        self.mock_google_drive_client.create_folder.return_value = "subfolder_id"
+        self.mock_google_drive_client.download_file.return_value = "/tmp/test_video.mp4"
+
+        generate_result = GenerateResult(draft_file_path="/tmp/draft.md", subtitle_file_path="/tmp/subtitle.srt", success=True)
+        self.mock_generate_usecase.execute.return_value = generate_result
+        self.mock_google_drive_client.upload_file.side_effect = ["draft_url", "subtitle_url", "video_url"]
+
+        with patch("tempfile.TemporaryDirectory") as mock_temp:
+            mock_temp.return_value.__enter__.return_value = "/tmp"
+            result = self.usecase.execute_drive_batch("input_folder_url", "output_folder_url")
+
+        self.mock_slack_client.send_video_processing_start.assert_called_once_with(
+            "test_video.mp4", "https://drive.google.com/file/d/file123/view"
+        )
+        self.mock_slack_client.send_video_processing_success.assert_called_once()
+        assert result.success is True

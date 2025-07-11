@@ -14,6 +14,7 @@ from src.service.draft_generator import DraftGenerator
 from src.service.srt_generator import SrtGenerator
 from src.usecases.generate_short_draft_usecase import GenerateShortDraftUsecase
 from src.usecases.google_drive_batch_process_usecase import GoogleDriveBatchProcessUsecase
+from src.clients.slack_client import SlackClient
 
 
 class DIContainer:
@@ -38,6 +39,11 @@ class DIContainer:
         # Google Driveバッチ処理用（新規追加）
         self.input_drive_folder = os.getenv("INPUT_DRIVE_FOLDER")
         self.output_drive_folder = os.getenv("OUTPUT_DRIVE_FOLDER")
+
+        self.slack_webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+        self.slack_client = None
+        if self.slack_webhook_url:
+            self.slack_client = SlackClient(self.slack_webhook_url)
 
         self.whisper_client = WhisperClient(api_key=self.openai_api_key, model=self.whisper_model)
 
@@ -67,6 +73,7 @@ class DIContainer:
         self.google_drive_batch_usecase = GoogleDriveBatchProcessUsecase(
             generate_usecase=self.generate_usecase,
             google_drive_client=self.google_drive_client,
+            slack_client=self.slack_client,
         )
 
     def _get_required_env(self, key: str) -> str:
