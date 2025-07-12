@@ -106,14 +106,25 @@ class WhisperClient:
             ValidationError: レスポンス内容が期待する形式でない場合
 
         """
+        print(f"DEBUG: 文字起こし処理開始 (動画ファイル: {Path(video_path).name})")
         self._validate_video_file(video_path)
 
         audio_path = None
         try:
+            print(f"DEBUG: ステップ1/4: 音声抽出開始")
             audio_path = self._extract_audio(video_path)
+
+            print(f"DEBUG: ステップ2/4: Whisper API呼び出し開始")
             response_data = self._call_whisper_api(audio_path)
+
+            print(f"DEBUG: ステップ3/4: レスポンス検証開始")
             self._validate_response_data(response_data)
-            return self._convert_to_transcription_result(response_data)
+
+            print(f"DEBUG: ステップ4/4: 結果変換開始")
+            result = self._convert_to_transcription_result(response_data)
+
+            print(f"DEBUG: 文字起こし処理完了")
+            return result
 
         finally:
             # デバッグのため、音声ファイルは削除しない
@@ -209,8 +220,12 @@ class WhisperClient:
         """
         last_exception = None
 
+        print(f"DEBUG: Whisper API呼び出し開始 (ファイル: {Path(audio_path).name})")
+
         for attempt in range(max_retries):
             try:
+                print(f"DEBUG: Whisper API呼び出し試行 {attempt + 1}/{max_retries}")
+
                 with open(audio_path, "rb") as audio_file:
                     response = self.client.audio.transcriptions.create(
                         model=self.model,
@@ -219,19 +234,24 @@ class WhisperClient:
                         timestamp_granularities=["segment"],
                     )
 
+                print(f"DEBUG: Whisper API呼び出し成功")
                 return response.model_dump()
 
             except Exception as e:
                 last_exception = e
+                print(f"DEBUG: Whisper API呼び出し失敗 (試行 {attempt + 1}/{max_retries}): {e}")
 
                 if hasattr(e, "status_code") and e.status_code == 429:
                     retry_after = getattr(e, "retry_after", 60)
                     if attempt < max_retries - 1:
+                        print(f"DEBUG: レート制限のため {retry_after}秒待機中...")
                         time.sleep(retry_after)
                         continue
 
                 if attempt < max_retries - 1:
-                    time.sleep(2**attempt)
+                    wait_time = 2**attempt
+                    print(f"DEBUG: {wait_time}秒後にリトライします...")
+                    time.sleep(wait_time)
 
         raise WhisperAPIError(f"Whisper API呼び出しが{max_retries}回失敗しました: {last_exception!s}")
 
@@ -273,6 +293,8 @@ class WhisperClient:
             TranscriptionResult オブジェクト
 
         """
+        print(f"DEBUG: 文字起こし結果の変換開始")
+
         segments = []
         for segment_data in data["segments"]:
             segment = TranscriptionSegment(
@@ -282,7 +304,10 @@ class WhisperClient:
             )
             segments.append(segment)
 
-        return TranscriptionResult(segments=segments, full_text=data["text"].strip())
+        result = TranscriptionResult(segments=segments, full_text=data["text"].strip())
+        print(f"DEBUG: 文字起こし結果の変換完了 (セグメント数: {len(segments)}, 全体文字数: {len(result.full_text)})")
+
+        return result
 
     def _cleanup_temp_files(self, *file_paths: str) -> None:
         """一時ファイルのクリーンアップ
