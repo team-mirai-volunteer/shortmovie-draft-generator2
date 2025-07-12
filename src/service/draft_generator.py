@@ -214,13 +214,14 @@ class DraftGenerator:
             シリアライズされた辞書
 
         """
+        processed_full_text = transcription.full_text.replace("庵野", "安野")
         return {
-            "full_text": transcription.full_text,
+            "full_text": processed_full_text,
             "segments": [
                 {
                     "start_time": segment.start_time,
                     "end_time": segment.end_time,
-                    "text": segment.text,
+                    "text": segment.text.replace("庵野", "安野"),
                 }
                 for segment in transcription.segments
             ],
