@@ -83,9 +83,23 @@ src/
 ## Environment Variables
 Set the following in `.env` file:
 ```
+# Required
 OPENAI_API_KEY=
+
+# Optional
 GOOGLE_SERVICE_ACCOUNT_KEY_PATH=
-GOOGLE_DRIVE_TARGET_FOLDER_ID=
+
+# Google Drive batch processing folders (both formats supported)
+# Format 1:
+INPUT_DRIVE_FOLDER=https://drive.google.com/drive/folders/xxx
+OUTPUT_DRIVE_FOLDER=https://drive.google.com/drive/folders/yyy
+
+# Format 2 (alternative):
+GOOGLE_DRIVE_SOURCE_FOLDER_URL=https://drive.google.com/drive/folders/xxx  
+GOOGLE_DRIVE_DESTINATION_FOLDER_URL=https://drive.google.com/drive/folders/yyy
+
+# Other optional
+GOOGLE_DRIVE_UPLOAD_FOLDER_ID=
 SLACK_WEBHOOK_URL=
 ```
 

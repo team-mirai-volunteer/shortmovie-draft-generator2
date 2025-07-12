@@ -1,0 +1,20 @@
+# Copy this file to terraform.tfvars and fill in the values
+
+project_id                        = "your-gcp-project-id"
+region                            = "asia-northeast1"
+github_app_installation_id        = 123456789  # Your GitHub App installation ID
+github_oauth_token_secret_version = "projects/PROJECT_ID/secrets/github-token/versions/latest"
+trigger_branch                    = "^develop$"  # Branch pattern to trigger Cloud Build
+
+# Cloud Run configuration
+cpu_limit              = "2000m"
+memory_limit           = "2Gi"
+timeout_seconds        = 3600
+schedule               = "0 * * * *"  # Every hour
+time_zone              = "Asia/Tokyo"
+
+# API Keys and External Services
+openai_api_key                      = "your-openai-api-key"
+google_drive_source_folder_url      = "https://drive.google.com/drive/folders/SOURCE_FOLDER_ID"
+google_drive_destination_folder_url = "https://drive.google.com/drive/folders/DESTINATION_FOLDER_ID"
+slack_webhook_url                   = "your-slack-webhook-url"

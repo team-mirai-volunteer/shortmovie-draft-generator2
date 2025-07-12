@@ -1,4 +1,4 @@
-"""文字起こし→企画書ユースケース"""
+"""文字起こし→企画書ユースケース（2段階処理版）"""
 
 import json
 import os
@@ -8,7 +8,6 @@ from zoneinfo import ZoneInfo
 
 from ..builders.prompt_builder import PromptBuilder
 from ..clients.chatgpt_client import ChatGPTClient
-from ..models.draft import DraftResult
 from ..models.hooks import DetailedScript, HooksExtractionResult
 from ..models.transcription import TranscriptionResult, TranscriptionSegment
 from ..models.usecase_results import TranscriptToDraftResult
@@ -207,151 +206,6 @@ class TranscriptToDraftUsecase:
         except Exception as e:
             raise DraftGenerationError(f"文字起こしデータの復元に失敗しました: {e!s}") from e
 
-    def _generate_draft_file(self, draft_result: DraftResult, transcript_file_path: str, output_dir: str) -> str:
-        """企画書Markdownファイルを生成
-
-        Args:
-            draft_result: 企画書生成結果
-            transcript_file_path: 元の文字起こしファイルパス
-            output_dir: 出力ディレクトリ
-
-        Returns:
-            生成されたファイルのパス
-
-        Raises:
-            DraftGenerationError: ファイル生成に失敗した場合
-
-        """
-        try:
-            # transcript.jsonのファイル名から元の動画名を推定
-            transcript_name = Path(transcript_file_path).stem
-            video_name = transcript_name.replace("_transcript", "")
-
-            draft_file_path = Path(output_dir) / f"{video_name}_draft.md"
-
-            # Markdownコンテンツを構築
-            markdown_content = self._build_markdown_content(draft_result, video_name)
-
-            with open(draft_file_path, "w", encoding="utf-8") as f:
-                f.write(markdown_content)
-
-            return str(draft_file_path)
-
-        except Exception as e:
-            raise DraftGenerationError(f"企画書ファイルの生成に失敗しました: {e!s}") from e
-
-    def _generate_subtitle_file(self, transcription: TranscriptionResult, transcript_file_path: str, output_dir: str) -> str:
-        """SRT字幕ファイルを生成
-
-        Args:
-            transcription: 文字起こし結果
-            transcript_file_path: 元の文字起こしファイルパス
-            output_dir: 出力ディレクトリ
-
-        Returns:
-            生成されたファイルのパス
-
-        Raises:
-            DraftGenerationError: ファイル生成に失敗した場合
-
-        """
-        try:
-            # transcript.jsonのファイル名から元の動画名を推定
-            transcript_name = Path(transcript_file_path).stem
-            video_name = transcript_name.replace("_transcript", "")
-
-            subtitle_file_path = Path(output_dir) / f"{video_name}_subtitle.srt"
-
-            # SrtGeneratorに処理を委譲
-            return self.srt_generator.generate_srt_file(transcription, str(subtitle_file_path))
-
-        except Exception as e:
-            raise DraftGenerationError(f"字幕ファイルの生成に失敗しました: {e!s}") from e
-
-    def _build_markdown_content(self, draft_result: DraftResult, video_name: str) -> str:
-        """企画書のMarkdown内容を構築
-
-        Args:
-            draft_result: 企画書生成結果
-            video_name: 動画名
-
-        Returns:
-            Markdown形式の企画書内容
-
-        """
-        content_lines = [
-            "# ショート動画企画書",
-            "",
-            f"**元動画**: {video_name}",
-            f"**生成日時**: {self._get_current_datetime()}",
-            f"**企画数**: {len(draft_result.proposals)}",
-            "",
-            "---",
-            "",
-        ]
-
-        for i, proposal in enumerate(draft_result.proposals, 1):
-            content_lines.extend(
-                [
-                    f"## 企画 {i}: {proposal.title}",
-                    "",
-                    f"**切り抜き時間**: {self._format_seconds_to_time(proposal.start_time)} - {self._format_seconds_to_time(proposal.end_time)}",
-                    f"**尺**: {proposal.end_time - proposal.start_time:.1f}秒",
-                    "",
-                    "**キャプション**:",
-                    f"{proposal.caption}",
-                    "",
-                    "**キーポイント**:",
-                ],
-            )
-
-            for point in proposal.key_points:
-                content_lines.append(f"- {point}")
-
-            content_lines.extend(
-                [
-                    "",
-                    "---",
-                    "",
-                ],
-            )
-
-        content_lines.extend(
-            [
-                "## 元の文字起こし",
-                "",
-                "```",
-                draft_result.original_transcription.full_text,
-                "```",
-            ],
-        )
-
-        return "\n".join(content_lines)
-
-    def _format_seconds_to_time(self, seconds: float) -> str:
-        """秒数をhh:mm:ss形式に変換
-
-        Args:
-            seconds: 変換する秒数
-
-        Returns:
-            hh:mm:ss形式の時刻文字列
-
-        """
-        hours = int(seconds // 3600)
-        minutes = int((seconds % 3600) // 60)
-        secs = int(seconds % 60)
-        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
-
-    def _get_current_datetime(self) -> str:
-        """現在の日時を文字列で取得
-
-        Returns:
-            現在の日時文字列
-
-        """
-        return datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S")
-
     def _extract_hooks_phase(self, transcription: TranscriptionResult) -> HooksExtractionResult:
         """フェーズ1: フック抽出
 
@@ -434,11 +288,14 @@ class TranscriptToDraftUsecase:
             subtitle_file_path = self._generate_subtitle_file(hooks_result.original_transcription, transcript_file_path, output_dir)
 
             return TranscriptToDraftResult(
-                success=True, draft_file_path=scripts_file_path, subtitle_file_path=subtitle_file_path, transcription=hooks_result.original_transcription
+                success=True,
+                draft_file_path=scripts_file_path,
+                subtitle_file_path=subtitle_file_path,
+                transcription=hooks_result.original_transcription,
             )
 
         except Exception as e:
-            raise Exception(f"出力ファイル生成に失敗しました: {e}") from e
+            raise DraftGenerationError(f"出力ファイル生成に失敗しました: {e!s}") from e
 
     def _save_hooks_result(self, hooks_result: HooksExtractionResult, video_name: str, output_dir: str) -> str:
         """フック抽出結果をJSONファイルに保存"""
@@ -506,3 +363,40 @@ class TranscriptToDraftUsecase:
             f.write(content)
 
         return str(scripts_file_path)
+
+    def _generate_subtitle_file(self, transcription: TranscriptionResult, transcript_file_path: str, output_dir: str) -> str:
+        """SRT字幕ファイルを生成
+
+        Args:
+            transcription: 文字起こし結果
+            transcript_file_path: 元の文字起こしファイルパス
+            output_dir: 出力ディレクトリ
+
+        Returns:
+            生成されたファイルのパス
+
+        Raises:
+            DraftGenerationError: ファイル生成に失敗した場合
+
+        """
+        try:
+            # transcript.jsonのファイル名から元の動画名を推定
+            transcript_name = Path(transcript_file_path).stem
+            video_name = transcript_name.replace("_transcript", "")
+
+            subtitle_file_path = Path(output_dir) / f"{video_name}_subtitle.srt"
+
+            # SrtGeneratorに処理を委譲
+            return self.srt_generator.generate_srt_file(transcription, str(subtitle_file_path))
+
+        except Exception as e:
+            raise DraftGenerationError(f"字幕ファイルの生成に失敗しました: {e!s}") from e
+
+    def _get_current_datetime(self) -> str:
+        """現在の日時を文字列で取得
+
+        Returns:
+            現在の日時文字列
+
+        """
+        return datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S")
