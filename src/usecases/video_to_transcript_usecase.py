@@ -37,7 +37,7 @@ class VideoToTranscriptUsecase:
     責務:
     - 動画ファイルの入力検証
     - Whisper APIによる文字起こし実行
-    - 文字起こし結果をintermediate/{video_name}_transcript.jsonに保存
+    - 文字起こし結果をintermediate/文字起こし_{video_name}.jsonに保存
     - エラーハンドリング
 
     Example:
@@ -45,7 +45,7 @@ class VideoToTranscriptUsecase:
         >>> result = usecase.execute("input/video.mp4")
         >>> if result.success:
         ...     print(f"文字起こし完了: {result.transcript_file_path}")
-        文字起こし完了: intermediate/video_transcript.json
+        文字起こし完了: intermediate/文字起こし_video.json
 
     """
 
@@ -154,7 +154,7 @@ class VideoToTranscriptUsecase:
         try:
             intermediate_path = Path(intermediate_dir)
             video_name = Path(video_path).stem
-            transcript_file = intermediate_path / f"{video_name}_transcript.json"
+            transcript_file = intermediate_path / f"文字起こし_{video_name}.json"
 
             # 文字起こし結果をシリアライズ
             data = self._serialize_transcription(transcription, video_path)
