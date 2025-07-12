@@ -1,6 +1,6 @@
 locals {
-  environment = "staging"
-  app_name    = "draft-generator"
+  environment = "stg"
+  app_name    = "sm-draft"
 }
 
 # Artifact Registry for Docker images

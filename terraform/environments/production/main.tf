@@ -1,6 +1,6 @@
 locals {
-  environment = "production"
-  app_name    = "draft-generator"
+  environment = "prd"
+  app_name    = "sm-draft"
 }
 
 # Artifact Registry for Docker images
