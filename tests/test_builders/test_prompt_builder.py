@@ -267,7 +267,6 @@ class TestSampleData:
             "first_hook",
             "second_hook",
             "third_hook",
-            "last_conclusion",
             "summary",
         ]
 

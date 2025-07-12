@@ -32,7 +32,7 @@ class PromptBuilder:
 - 登場人物の感情（驚き、怒り、笑い、感動など）が強く出ている場面
 - ストーリー性・変化・結論・主張が明快な場面
 - 特定の価値観・信念・メッセージが一言で表現できる場面
-- 切り抜き動画に向いている箇所を **5 個**ピックアップしてください。
+- 切り抜き動画に向いている箇所を **10個**ピックアップしてください。
 - 各クリップの長さは **約 1 分**を目安にしてください。
 - この動画から切り抜き動画を作って **面白い**作品にしたいです。
 - 絵文字は多く使用してください。
@@ -86,7 +86,6 @@ class PromptBuilder:
       "first_hook": "",
       "second_hook": "",
       "third_hook": "",
-      "last_conclusion": "",
       "summary": ""
     }},
     ...
@@ -94,7 +93,7 @@ class PromptBuilder:
 }}"""
 
     # 詳細台本作成用プロンプトテンプレート
-    SCRIPT_PROMPT_TEMPLATE = """# ショート動画台本作成プロンプト（ナレーション＋本人発言混合構成）
+    SCRIPT_PROMPT_TEMPLATE = """# ショート動画台本作成プロンプト（本人発言のみ）
 
 あなたは動画編集者のために、Z世代向けショート動画の台本を構成するプロフェッショナルです。
 以下の `item` 情報と `segments`（タイムスタンプ付き文字起こし）をもとに、**1分以内の動画構成案**を出力してください。
@@ -112,37 +111,58 @@ class PromptBuilder:
 ## 出力条件
 
 1. 台本全体は**60秒以内**にしてください。
-2. **first_hook**は、冒頭にテロップ＋ナレーションで使用してください。
-3. **segmentsの中から発言を2〜3個抽出**し、本人発言パートとして使用してください。
-4. その他の部分はナレーションで補完してください。
-5. セリフは整える程度の編集（口語・つなぎ）をOKとしつつ、**本人らしさは残してください**。
-6. 各発言・ナレーションパートの秒数を目安として記載してください（編集の参考に）。
-7. 最後に `last_conclusion` を含めた**締めのナレーションまたはセリフ**を含めてください。
+2. **first_hook**は、冒頭にテロップで使用してください。
+3. **segmentsの中から発言を4~5個抽出**し、本人発言パートとして使用してください。
+4. セリフは整える程度の編集（口語・つなぎ）をOKとしつつ、**本人らしさは残してください**。
+5. 各発言の秒数を目安として記載してください（編集の参考に）。
+
+---
+
+## 注意事項
+- 「**」による太字表記は使わないでください
+- 台本の一番はじめの言葉は、フックと直接関係のある、興味をひく発言にしてください。
+- 台本の一番はじめの言葉として、「どうもこんにちは」「アンナタカヒロです。」のようなものは絶対に使わないようにしてください。
+- 台本の順序は、実際の中身と前後しても問題ありません。
+- 台本構成には、おおまかな秒数を抜き出す形で記載してください。
+- 一番最後の発言は、動画内での順序を大胆に無視していいので、結論として締まるものか、オチとして面白いものを選んでください。
 
 ---
 
 ## 出力形式
+【フック】
+🎨「作画が同じ夫婦⁉️」
 
 【台本構成】
-[00:00–00:06] ナレーション＋テロップ
-🧠え、小学生でExcelでゲーム作ってた！？
+00:00.00 xxxxxxxxxxxxx
+00:00.00 xxxxxxxxxxxxx
+...
 
-[00:06–00:18] 本人発言
-「小学生のとき、Excelのマクロで国家間の戦争ゲーム作ってました」
+----
 
-[00:18–00:26] ナレーション
-まさかのマクロでシミュレーションゲーム。
-しかもジャンルは…戦争！？天才すぎる！
+【台本構成例1】
+08:45.12 かなりニューウェーブだから
+09:03.37 若者が新しい文脈で何かをやることによって
+09:03.12 その形が多少間違ってたことがあったり、拙かったとしても
+09:03.09 新陳代謝するんだから意味がある
+01:30.75 既存の政党に入るんじゃなくて新しい政党を立ち上げてみんな若いって
+01:30.18 超反骨精神あるじゃないですか
+03:40.74 どうするとブランドが立つんだろうなあ
+04:46.92 取り巻く人をエッジにしていくことによって
+04:46.16 自分たちをより浮かび上がらせていくみたいな
+04:24.47 それだ！
+04:24.75 ゆとりくんのような個性的な人が応援しているのか
+47:34.66 まじ参考になるアドバイスでした
 
-[00:26–00:36] 本人発言
-「表に兵力入れて、勝手に戦況が変わるようにしてました」
+【台本構成例2】
+0:31.12	米の値段、1年で2倍に！？
+0:19.37	米価格問題×IT
+1:58.12 お米がつくれなかった年じゃない
+3:52.09	理由がわかってない状況をいち早く解決する
+3:59.75	コメの見える化をITでやる
+9:19.18	社会問題にはITを使って解決できるものが沢山ある
+9:37.33	ぜひサポーター（ボランティア）登録お願いします
 
-[00:36–00:54] ナレーション
-周りの友達はもちろん「マクロって何？」状態。
-Excel＝表計算って思ってると、世界狭いよ…！
-
-[00:54–01:00] ナレーション（締め）
-Z世代よ、Excelはただの表計算じゃない✊✨"""
+"""
 
     def __init__(self) -> None:
         """プロンプトテンプレートを初期化"""
@@ -199,28 +219,24 @@ Z世代よ、Excelはただの表計算じゃない✊✨"""
     "first_hook": "{self._escape_json_string(hook_item.first_hook)}",
     "second_hook": "{self._escape_json_string(hook_item.second_hook)}",
     "third_hook": "{self._escape_json_string(hook_item.third_hook)}",
-    "last_conclusion": "{self._escape_json_string(hook_item.last_conclusion)}",
     "summary": "{self._escape_json_string(hook_item.summary)}"
 }}"""
 
-        # セグメント情報をJSON形式で整形
-        segments_json = "[\n"
+        # セグメント情報を簡潔なフォーマットで整形
+        segments_text = ""
         for segment in segments:
-            # JSONエスケープ処理
-            escaped_text = self._escape_json_string(segment.text)
-            segments_json += f"""    {{
-        "start_time": {segment.start_time},
-        "end_time": {segment.end_time},
-        "text": "{escaped_text}"
-    }},\n"""
-        segments_json = segments_json.rstrip(",\n") + "\n]"
+            # 開始時刻を分:秒.小数点形式に変換
+            start_time_formatted = self._format_time_to_minutes_seconds(segment.start_time)
+            segments_text += f"{start_time_formatted} {segment.text}\n"
+        segments_text = segments_text.rstrip("\n")
 
         # テンプレートのプレースホルダーを置換
         prompt = self.SCRIPT_PROMPT_TEMPLATE
 
         # プレースホルダーを置換
         prompt = prompt.replace("{{ITEM_PLACEHOLDER}}", item_json)
-        prompt = prompt.replace("{{SEGMENTS_PLACEHOLDER}}", segments_json)
+        prompt = prompt.replace("{{SEGMENTS_PLACEHOLDER}}", segments_text)
+        print(prompt)
 
         return prompt
 
@@ -250,6 +266,20 @@ Z世代よ、Excelはただの表計算じゃない✊✨"""
         minutes = int((seconds % 3600) // 60)
         secs = int(seconds % 60)
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+    def _format_time_to_minutes_seconds(self, seconds: float) -> str:
+        """秒数をm:ss.dd形式に変換
+
+        Args:
+            seconds: 変換する秒数
+
+        Returns:
+            m:ss.dd形式の時刻文字列（例: 81.23 -> 1:21.23）
+
+        """
+        minutes = int(seconds // 60)
+        remaining_seconds = seconds % 60
+        return f"{minutes}:{remaining_seconds:05.2f}"
 
     def _format_segments(self, segments: list[TranscriptionSegment]) -> str:
         """セグメント情報を読みやすい形式にフォーマット

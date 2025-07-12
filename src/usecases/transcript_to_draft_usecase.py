@@ -309,7 +309,6 @@ class TranscriptToDraftUsecase:
                     "first_hook": item.first_hook,
                     "second_hook": item.second_hook,
                     "third_hook": item.third_hook,
-                    "last_conclusion": item.last_conclusion,
                     "summary": item.summary,
                 }
                 for item in hooks_result.items
@@ -347,7 +346,6 @@ class TranscriptToDraftUsecase:
                     f"- **First Hook**: {script.hook_item.first_hook}",
                     f"- **Second Hook**: {script.hook_item.second_hook}",
                     f"- **Third Hook**: {script.hook_item.third_hook}",
-                    f"- **Last Conclusion**: {script.hook_item.last_conclusion}",
                     "",
                     "### 台本内容",
                     script.script_content,
