@@ -1,6 +1,6 @@
 locals {
   environment = "staging"
-  app_name    = "shortmovie-draft-generator"
+  app_name    = "draft-generator"
 }
 
 # Artifact Registry for Docker images
@@ -26,3 +26,4 @@ module "cloud_build" {
   trigger_branch                    = "^develop$"
   artifact_registry_repository      = module.artifact_registry.repository_id
 }
+
