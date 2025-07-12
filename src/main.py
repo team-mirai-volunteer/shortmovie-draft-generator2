@@ -33,7 +33,8 @@ class DIContainer:
         self.whisper_model = os.getenv("WHISPER_MODEL", "whisper-1")
 
         # Google Drive API設定（サービスアカウント）
-        self.google_service_account_path = self._get_required_env("GOOGLE_SERVICE_ACCOUNT_PATH")
+        # Cloud Runではオプショナル、ローカルでは必須
+        self.google_service_account_path = os.getenv("GOOGLE_SERVICE_ACCOUNT_KEY_PATH")
         self.google_drive_upload_folder_id = os.getenv("GOOGLE_DRIVE_UPLOAD_FOLDER_ID")
 
         # Google Driveバッチ処理用（新規追加）
@@ -44,8 +45,8 @@ class DIContainer:
 
         self.chatgpt_client = ChatGPTClient(api_key=self.openai_api_key, model=self.chatgpt_model)
 
-        # サービスアカウントパスを渡すように変更
-        self.google_drive_client = GoogleDriveClient(service_account_path=self.google_service_account_path)
+        # Cloud Runでの実行時はADCを使用、ローカルではキーファイルを使用
+        self.google_drive_client = GoogleDriveClient(service_account_path=self.google_service_account_path if self.google_service_account_path else None)
 
         self.prompt_builder = PromptBuilder()
 

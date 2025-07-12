@@ -5,6 +5,7 @@ import mimetypes
 from pathlib import Path
 from typing import Any
 
+import google.auth
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
@@ -87,11 +88,11 @@ class GoogleDriveClient:
 
     """
 
-    def __init__(self, service_account_path: str):
+    def __init__(self, service_account_path: str | None = None):
         """GoogleDriveClientを初期化
 
         Args:
-            service_account_path: サービスアカウントキーファイルのパス
+            service_account_path: サービスアカウントキーファイルのパス（Noneの場合はApplication Default Credentialsを使用）
 
         """
         self.service_account_path = service_account_path
@@ -109,15 +110,21 @@ class GoogleDriveClient:
     def _build_service(self) -> Any:
         """Google Drive APIサービスを構築"""
         try:
-            # サービスアカウントキーファイルから認証情報を読み込み
-            credentials = service_account.Credentials.from_service_account_file(self.service_account_path, scopes=self.scopes)
+            if self.service_account_path:
+                # サービスアカウントキーファイルから認証情報を読み込み
+                credentials = service_account.Credentials.from_service_account_file(self.service_account_path, scopes=self.scopes)
+            else:
+                # Application Default Credentials (ADC) を使用
+                credentials, _ = google.auth.default(scopes=self.scopes)
 
             # Google Drive APIサービスを構築
             service = build("drive", "v3", credentials=credentials)
             return service
 
         except FileNotFoundError as e:
-            raise GoogleDriveError(f"サービスアカウントキーファイルが見つかりません: {self.service_account_path}") from e
+            if self.service_account_path:
+                raise GoogleDriveError(f"サービスアカウントキーファイルが見つかりません: {self.service_account_path}") from e
+            raise GoogleDriveError("Application Default Credentialsが見つかりません") from e
         except json.JSONDecodeError as e:
             raise GoogleDriveError(f"サービスアカウントキーファイルの形式が正しくありません: {self.service_account_path}") from e
         except Exception as e:
@@ -434,6 +441,8 @@ class GoogleDriveClient:
 
     def _get_service_account_email(self) -> str:
         """サービスアカウントのメールアドレスを取得"""
+        if self.service_account_path is None:
+            return "unknown"
         try:
             with open(self.service_account_path) as f:
                 service_account_info = json.load(f)
