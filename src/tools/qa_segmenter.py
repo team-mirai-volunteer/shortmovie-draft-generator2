@@ -93,6 +93,7 @@ class QASegmenter:
 
         Raises:
             QASegmenterError: セグメント抽出に失敗した場合
+
         """
         try:
             segments = transcription_data.get("segments", [])
@@ -132,6 +133,7 @@ class QASegmenter:
 
         Returns:
             (セグメントインデックス, セグメントデータ, 質問者名) のタプルリスト
+
         """
         question_markers = []
 
