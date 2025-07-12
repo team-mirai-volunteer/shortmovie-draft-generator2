@@ -170,10 +170,10 @@ class WhisperClient:
             print(f"DEBUG: 動画ファイルサイズ: {os.path.getsize(video_path) / 1024 / 1024:.1f}MB")
             print(f"DEBUG: 音声抽出先: {audio_path}")
 
-            # MP3形式で抽出（64kbps、モノラル、16kHz）
+            # MP3形式で抽出（32kbps、モノラル、8kHz）- ファイルサイズ削減でWhisper処理高速化
             (
                 ffmpeg.input(video_path)
-                .output(str(audio_path), acodec="mp3", ac=1, ar=16000, audio_bitrate="64k")
+                .output(str(audio_path), acodec="mp3", ac=1, ar=8000, audio_bitrate="32k")
                 .overwrite_output()
                 .run(capture_stdout=True, capture_stderr=True)
             )
