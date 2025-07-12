@@ -251,14 +251,21 @@ class QASegmenter:
                 next_question_idx = q_idx
                 break
 
-        if next_question_idx is not None:
-            return next_question_idx - 1
-
         for i in range(answer_start_idx + 1, len(segments)):
             text = segments[i].get("text", "").strip()
+            
+            for pattern in self.question_patterns:
+                if re.search(pattern, text):
+                    if next_question_idx is None or i < next_question_idx:
+                        return i - 1
+            
             for pattern in self.transition_patterns:
                 if re.match(pattern, text):
-                    return i - 1
+                    if next_question_idx is None or i < next_question_idx:
+                        return i - 1
+
+        if next_question_idx is not None:
+            return next_question_idx - 1
 
         return len(segments) - 1
 
