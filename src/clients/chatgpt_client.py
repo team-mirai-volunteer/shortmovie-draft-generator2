@@ -326,7 +326,7 @@ class ChatGPTClient:
         if len(data["items"]) == 0:
             raise ValidationError("'items'が空です")
 
-        required_fields = ["first_hook", "second_hook", "third_hook", "last_conclusion", "summary"]
+        required_fields = ["first_hook", "second_hook", "third_hook", "summary"]
 
         for i, item in enumerate(data["items"]):
             for field in required_fields:
@@ -345,7 +345,6 @@ class ChatGPTClient:
                 first_hook=item["first_hook"],
                 second_hook=item["second_hook"],
                 third_hook=item["third_hook"],
-                last_conclusion=item["last_conclusion"],
                 summary=item["summary"],
             )
             hook_items.append(hook_item)

@@ -123,7 +123,7 @@ class DraftGenerator:
                     start_time=start_time,
                     end_time=end_time,
                     caption=script.hook_item.summary,
-                    key_points=[script.hook_item.first_hook, script.hook_item.second_hook, script.hook_item.third_hook, script.hook_item.last_conclusion],
+                    key_points=[script.hook_item.first_hook, script.hook_item.second_hook, script.hook_item.third_hook],
                 )
                 proposals.append(proposal)
 

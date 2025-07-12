@@ -13,7 +13,6 @@ class HookItem:
         first_hook: 最初のフック
         second_hook: 2番目のフック
         third_hook: 3番目のフック
-        last_conclusion: 最後の結論
         summary: 要約
 
     Example:
@@ -21,7 +20,6 @@ class HookItem:
         ...     first_hook="え、こんな政治家見たことない！",
         ...     second_hook="あなたはこの事実、知ってましたか？",
         ...     third_hook="政治って、ほぼ宗教です。",
-        ...     last_conclusion="Z世代よ、政治はただの遠い話じゃない",
         ...     summary="政治家の意外な一面を紹介",
         ... )
         >>> print(hook.summary)
@@ -32,7 +30,6 @@ class HookItem:
     first_hook: str
     second_hook: str
     third_hook: str
-    last_conclusion: str
     summary: str
 
 
@@ -48,7 +45,7 @@ class HooksExtractionResult:
         >>> from .transcription import TranscriptionSegment, TranscriptionResult
         >>> segments = [TranscriptionSegment(0.0, 10.0, "テスト")]
         >>> transcription = TranscriptionResult(segments, "テスト")
-        >>> hooks = [HookItem("hook1", "hook2", "hook3", "conclusion", "summary")]
+        >>> hooks = [HookItem("hook1", "hook2", "hook3", "summary")]
         >>> result = HooksExtractionResult(hooks, transcription)
         >>> print(len(result.items))
         1
@@ -70,7 +67,7 @@ class DetailedScript:
         segments_used: 使用されたセグメント
 
     Example:
-        >>> hook = HookItem("hook1", "hook2", "hook3", "conclusion", "summary")
+        >>> hook = HookItem("hook1", "hook2", "hook3", "summary")
         >>> script = DetailedScript(hook_item=hook, script_content="【台本構成】\n[00:00–00:06] ナレーション...", duration_seconds=60, segments_used=[])
         >>> print(script.duration_seconds)
         60
@@ -97,7 +94,7 @@ class TwoPhaseResult:
         >>> from .transcription import TranscriptionSegment, TranscriptionResult
         >>> segments = [TranscriptionSegment(0.0, 10.0, "テスト")]
         >>> transcription = TranscriptionResult(segments, "テスト")
-        >>> hooks = [HookItem("hook1", "hook2", "hook3", "conclusion", "summary")]
+        >>> hooks = [HookItem("hook1", "hook2", "hook3", "summary")]
         >>> hooks_result = HooksExtractionResult(hooks, transcription)
         >>> scripts = [DetailedScript(hooks[0], "台本内容", 60, [])]
         >>> result = TwoPhaseResult(hooks_result, scripts, True)
