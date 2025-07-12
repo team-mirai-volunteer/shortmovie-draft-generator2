@@ -1,39 +1,33 @@
 variable "project_id" {
-  description = "GCP Project ID"
+  description = "The GCP project ID"
   type        = string
 }
 
 variable "region" {
-  description = "GCP Region"
-  type        = string
-  default     = "asia-northeast1"
-}
-
-variable "github_app_installation_id" {
-  description = "GitHub App Installation ID"
-  type        = number
-}
-
-variable "github_oauth_token_secret_version" {
-  description = "Secret Manager version ID for GitHub OAuth token"
+  description = "The region to deploy the Cloud Run service"
   type        = string
 }
 
-variable "trigger_branch" {
-  description = "Branch pattern to trigger Cloud Build"
+variable "service_name" {
+  description = "Name of the Cloud Run service"
+  type        = string
+}
+
+variable "container_image" {
+  description = "Container image URL"
   type        = string
 }
 
 variable "cpu_limit" {
   description = "CPU limit for the container"
   type        = string
-  default     = "2000m"
+  default     = "1000m"
 }
 
 variable "memory_limit" {
   description = "Memory limit for the container"
   type        = string
-  default     = "2Gi"
+  default     = "512Mi"
 }
 
 variable "timeout_seconds" {
@@ -42,20 +36,14 @@ variable "timeout_seconds" {
   default     = 3600
 }
 
-variable "schedule" {
-  description = "Cron schedule expression (every hour by default)"
-  type        = string
-  default     = "0 * * * *"
-}
-
-variable "time_zone" {
-  description = "Time zone for the scheduler"
-  type        = string
-  default     = "Asia/Tokyo"
-}
-
 variable "openai_api_key" {
   description = "OpenAI API key"
+  type        = string
+  sensitive   = true
+}
+
+variable "service_account_key_json" {
+  description = "Service account key JSON content"
   type        = string
   sensitive   = true
 }
