@@ -3,16 +3,15 @@
 import json
 import re
 import time
-from typing import Any, List, TYPE_CHECKING
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from ..builders.prompt_builder import PromptBuilder
 
 from openai import OpenAI
 
-from ..models.draft import ShortVideoProposal
-from ..models.hooks import HookItem, DetailedScript
+from ..models.hooks import DetailedScript, HookItem
 from ..models.transcription import TranscriptionSegment
 
 
@@ -82,7 +81,6 @@ class ChatGPTClient:
         self.api_key = api_key
         self.model = model
         self.client = OpenAI(api_key=api_key)
-
 
     def _validate_prompt(self, prompt: str) -> None:
         """プロンプトの妥当性チェック
@@ -173,7 +171,6 @@ class ChatGPTClient:
         except json.JSONDecodeError as e:
             raise JSONParseError(f"JSONの解析に失敗しました: {e!s}", raw_response) from e
 
-
     def _parse_time_to_seconds(self, time_str: str) -> float:
         """hh:mm:ss形式の時刻文字列を秒数に変換
 
@@ -201,7 +198,7 @@ class ChatGPTClient:
         except (ValueError, IndexError) as e:
             raise ValueError(f"時刻の解析に失敗しました: {time_str} - {e!s}") from e
 
-    def extract_hooks(self, prompt: str) -> List[HookItem]:
+    def extract_hooks(self, prompt: str) -> list[HookItem]:
         """フック抽出API呼び出し
 
         Args:
@@ -214,6 +211,7 @@ class ChatGPTClient:
             ChatGPTAPIError: API呼び出しに失敗した場合
             JSONParseError: レスポンスのJSON解析に失敗した場合
             ValidationError: レスポンス内容が期待する形式でない場合
+
         """
         self._validate_prompt(prompt)
 
@@ -236,6 +234,7 @@ class ChatGPTClient:
         Note:
             詳細台本生成は台本形式のテキストを出力するため、
             JSONパースは行わずに生テキストとして処理する
+
         """
         self._validate_prompt(prompt)
 
@@ -249,15 +248,12 @@ class ChatGPTClient:
             hook_item=hook_item,
             script_content=raw_response,
             duration_seconds=duration,
-            segments_used=[]  # 後で設定
+            segments_used=[],  # 後で設定
         )
 
     def generate_detailed_scripts_parallel(
-        self,
-        hook_items: List[HookItem],
-        segments: List[TranscriptionSegment],
-        prompt_builder: "PromptBuilder"
-    ) -> List[DetailedScript]:
+        self, hook_items: list[HookItem], segments: list[TranscriptionSegment], prompt_builder: "PromptBuilder"
+    ) -> list[DetailedScript]:
         """10個のフックに対して並列で詳細台本を生成
 
         Args:
@@ -267,6 +263,7 @@ class ChatGPTClient:
 
         Returns:
             詳細台本のリスト
+
         """
         detailed_scripts = []
 
@@ -301,9 +298,10 @@ class ChatGPTClient:
 
         Returns:
             想定時間（秒）、抽出できない場合は60秒
+
         """
         # [00:54–01:00] のような時間表記を探す
-        time_pattern = r'\[(\d{2}):(\d{2})–(\d{2}):(\d{2})\]'
+        time_pattern = r"\[(\d{2}):(\d{2})–(\d{2}):(\d{2})\]"
         matches = re.findall(time_pattern, script_content)
 
         if matches:
@@ -328,13 +326,7 @@ class ChatGPTClient:
         if len(data["items"]) == 0:
             raise ValidationError("'items'が空です")
 
-        required_fields = [
-            "first_hook",
-            "second_hook",
-            "third_hook",
-            "last_conclusion",
-            "summary"
-        ]
+        required_fields = ["first_hook", "second_hook", "third_hook", "last_conclusion", "summary"]
 
         for i, item in enumerate(data["items"]):
             for field in required_fields:
@@ -344,7 +336,7 @@ class ChatGPTClient:
                         field_name=field,
                     )
 
-    def _convert_to_hook_items(self, data: dict[str, Any]) -> List[HookItem]:
+    def _convert_to_hook_items(self, data: dict[str, Any]) -> list[HookItem]:
         """JSONデータをHookItemオブジェクトのリストに変換"""
         hook_items = []
 
@@ -354,7 +346,7 @@ class ChatGPTClient:
                 second_hook=item["second_hook"],
                 third_hook=item["third_hook"],
                 last_conclusion=item["last_conclusion"],
-                summary=item["summary"]
+                summary=item["summary"],
             )
             hook_items.append(hook_item)
 

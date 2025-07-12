@@ -65,7 +65,6 @@ class DIContainer:
             chatgpt_client=self.chatgpt_client, prompt_builder=self.prompt_builder, srt_generator=self.srt_generator
         )
 
-
         # リファクタリング後のGoogleDriveBatchProcessUsecase
         self.google_drive_batch_usecase = GoogleDriveBatchProcessUsecase(
             video_to_transcript_usecase=self.video_to_transcript_usecase,
@@ -238,11 +237,7 @@ def main(
                 sys.exit(1)
 
             # GenerateResultと同じ形式で結果を作成
-            result = GenerateResult(
-                draft_file_path=draft_result.draft_file_path,
-                subtitle_file_path=draft_result.subtitle_file_path,
-                success=True
-            )
+            result = GenerateResult(draft_file_path=draft_result.draft_file_path, subtitle_file_path=draft_result.subtitle_file_path, success=True)
 
         if result.success:
             click.echo("🎉 処理が正常に完了しました！")

@@ -1,11 +1,7 @@
 """ChatGPT用プロンプト生成モジュール"""
 
-import os
-from pathlib import Path
-from typing import List
-
-from ..models.transcription import TranscriptionResult, TranscriptionSegment
 from ..models.hooks import HookItem
+from ..models.transcription import TranscriptionResult, TranscriptionSegment
 
 
 class PromptBuilder:
@@ -150,7 +146,6 @@ Z世代よ、Excelはただの表計算じゃない✊✨"""
 
     def __init__(self) -> None:
         """プロンプトテンプレートを初期化"""
-        pass
 
     def build_hooks_prompt(self, transcription: TranscriptionResult) -> str:
         """フック抽出用プロンプトを構築
@@ -160,6 +155,7 @@ Z世代よ、Excelはただの表計算じゃない✊✨"""
 
         Returns:
             フック抽出用プロンプト
+
         """
         self._validate_transcription(transcription)
 
@@ -167,7 +163,9 @@ Z世代よ、Excelはただの表計算じゃない✊✨"""
         segments_text = self._format_segments(transcription.segments)
 
         # テンプレートに文字起こし情報を埋め込み
-        prompt = self.HOOKS_PROMPT_TEMPLATE + f"""
+        prompt = (
+            self.HOOKS_PROMPT_TEMPLATE
+            + f"""
 
 # 動画書き起こし
 
@@ -177,10 +175,11 @@ Z世代よ、Excelはただの表計算じゃない✊✨"""
 ## タイムスタンプ付きセグメント
 {segments_text}
 """
+        )
 
         return prompt
 
-    def build_script_prompt(self, hook_item: HookItem, segments: List[TranscriptionSegment]) -> str:
+    def build_script_prompt(self, hook_item: HookItem, segments: list[TranscriptionSegment]) -> str:
         """詳細台本作成用プロンプトを構築
 
         Args:
@@ -193,6 +192,7 @@ Z世代よ、Excelはただの表計算じゃない✊✨"""
         Note:
             SCRIPT_PROMPT_TEMPLATEの`{{ITEM_PLACEHOLDER}}`と`{{SEGMENTS_PLACEHOLDER}}`を
             実際のデータで置換する
+
         """
         # フック情報をJSON形式で整形
         item_json = f"""{{
@@ -232,9 +232,9 @@ Z世代よ、Excelはただの表計算じゃない✊✨"""
 
         Returns:
             エスケープされた文字列
-        """
-        return text.replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
 
+        """
+        return text.replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
 
     def _format_time_to_hms(self, seconds: float) -> str:
         """秒数をhh:mm:ss形式に変換

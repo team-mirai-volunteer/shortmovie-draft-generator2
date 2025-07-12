@@ -108,9 +108,7 @@ class DraftGenerator:
             hook_items = self.chatgpt_client.extract_hooks(hooks_prompt)
 
             # 2. 詳細台本生成（並列処理）
-            detailed_scripts = self.chatgpt_client.generate_detailed_scripts_parallel(
-                hook_items, transcription.segments, self.prompt_builder
-            )
+            detailed_scripts = self.chatgpt_client.generate_detailed_scripts_parallel(hook_items, transcription.segments, self.prompt_builder)
 
             # 従来のDraftResult形式に変換（後方互換性のため）
             proposals = []
@@ -125,12 +123,7 @@ class DraftGenerator:
                     start_time=start_time,
                     end_time=end_time,
                     caption=script.hook_item.summary,
-                    key_points=[
-                        script.hook_item.first_hook,
-                        script.hook_item.second_hook,
-                        script.hook_item.third_hook,
-                        script.hook_item.last_conclusion
-                    ]
+                    key_points=[script.hook_item.first_hook, script.hook_item.second_hook, script.hook_item.third_hook, script.hook_item.last_conclusion],
                 )
                 proposals.append(proposal)
 

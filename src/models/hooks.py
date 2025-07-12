@@ -1,7 +1,6 @@
 """フック関連のデータ構造"""
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 from .transcription import TranscriptionResult, TranscriptionSegment
 
@@ -23,11 +22,13 @@ class HookItem:
         ...     second_hook="あなたはこの事実、知ってましたか？",
         ...     third_hook="政治って、ほぼ宗教です。",
         ...     last_conclusion="Z世代よ、政治はただの遠い話じゃない",
-        ...     summary="政治家の意外な一面を紹介"
+        ...     summary="政治家の意外な一面を紹介",
         ... )
         >>> print(hook.summary)
         政治家の意外な一面を紹介
+
     """
+
     first_hook: str
     second_hook: str
     third_hook: str
@@ -51,8 +52,10 @@ class HooksExtractionResult:
         >>> result = HooksExtractionResult(hooks, transcription)
         >>> print(len(result.items))
         1
+
     """
-    items: List[HookItem]
+
+    items: list[HookItem]
     original_transcription: TranscriptionResult
 
 
@@ -68,19 +71,16 @@ class DetailedScript:
 
     Example:
         >>> hook = HookItem("hook1", "hook2", "hook3", "conclusion", "summary")
-        >>> script = DetailedScript(
-        ...     hook_item=hook,
-        ...     script_content="【台本構成】\\n[00:00–00:06] ナレーション...",
-        ...     duration_seconds=60,
-        ...     segments_used=[]
-        ... )
+        >>> script = DetailedScript(hook_item=hook, script_content="【台本構成】\\n[00:00–00:06] ナレーション...", duration_seconds=60, segments_used=[])
         >>> print(script.duration_seconds)
         60
+
     """
+
     hook_item: HookItem
     script_content: str
     duration_seconds: int
-    segments_used: List[TranscriptionSegment]
+    segments_used: list[TranscriptionSegment]
 
 
 @dataclass
@@ -103,8 +103,10 @@ class TwoPhaseResult:
         >>> result = TwoPhaseResult(hooks_result, scripts, True)
         >>> print(result.success)
         True
+
     """
+
     hooks_result: HooksExtractionResult
-    detailed_scripts: List[DetailedScript]
+    detailed_scripts: list[DetailedScript]
     success: bool
-    error_message: Optional[str] = None
+    error_message: str | None = None
