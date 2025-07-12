@@ -19,8 +19,8 @@ class GenerateResult:
     Example:
         成功時:
         >>> result = GenerateResult(
-        ...     draft_file_path="output/draft.md",
-        ...     subtitle_file_path="output/subtitle.srt",
+        ...     draft_file_path="output/企画案_video.md",
+        ...     subtitle_file_path="output/字幕_video.srt",
         ...     success=True
         ... )
         >>> print(f"処理結果: {'成功' if result.success else '失敗'}")

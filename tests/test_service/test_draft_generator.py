@@ -127,7 +127,7 @@ class TestDraftGenerator:
             ],
         }
 
-        result = self.generator.load_transcription("transcription.json")
+        result = self.generator.load_transcription("文字起こし_test.json")
 
         assert isinstance(result, TranscriptionResult)
         assert result.full_text == "こんにちは今日は良い天気ですね"

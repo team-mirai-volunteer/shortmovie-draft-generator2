@@ -62,11 +62,11 @@ class TestSrtGenerator:
         mock_exists.return_value = True
 
         result = self.generator.generate_srt_file(
-            self.sample_transcription, "output/subtitle.srt"
+            self.sample_transcription, "output/字幕_test.srt"
         )
 
-        assert result == "output/subtitle.srt"
-        mock_file.assert_called_once_with("output/subtitle.srt", "w", encoding="utf-8")
+        assert result == "output/字幕_test.srt"
+        mock_file.assert_called_once_with("output/字幕_test.srt", "w", encoding="utf-8")
         mock_file().write.assert_called_once()
         # 書き込まれた内容を検証
         written_content = mock_file().write.call_args[0][0]
@@ -85,12 +85,12 @@ class TestSrtGenerator:
         mock_exists.return_value = False
 
         result = self.generator.generate_srt_file(
-            self.sample_transcription, "output/subtitle.srt"
+            self.sample_transcription, "output/字幕_test.srt"
         )
 
-        assert result == "output/subtitle.srt"
+        assert result == "output/字幕_test.srt"
         mock_makedirs.assert_called_once_with("output", exist_ok=True)
-        mock_file.assert_called_once_with("output/subtitle.srt", "w", encoding="utf-8")
+        mock_file.assert_called_once_with("output/字幕_test.srt", "w", encoding="utf-8")
 
     @patch("builtins.open")
     def test_generate_srt_file_error(self, mock_open):
@@ -99,9 +99,9 @@ class TestSrtGenerator:
 
         with pytest.raises(SrtGenerationError) as excinfo:
             self.generator.generate_srt_file(
-                self.sample_transcription, "output/subtitle.srt"
+                self.sample_transcription, "output/字幕_test.srt"
             )
 
         assert "字幕ファイルの生成に失敗しました" in str(excinfo.value)
         assert "テストエラー" in str(excinfo.value)
-        assert excinfo.value.file_path == "output/subtitle.srt"
+        assert excinfo.value.file_path == "output/字幕_test.srt"

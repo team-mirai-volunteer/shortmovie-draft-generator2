@@ -150,7 +150,7 @@ class GenerateShortDraftUsecase:
     ) -> str:
         """SRT生成をSrtGeneratorに委譲"""
         video_name = Path(video_path).stem
-        subtitle_file_path = Path(output_dir) / f"{video_name}_subtitle.srt"
+        subtitle_file_path = Path(output_dir) / f"字幕_{video_name}.srt"
 
         return self.srt_generator.generate_srt_file(
             draft_result.original_transcription,

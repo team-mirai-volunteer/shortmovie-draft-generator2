@@ -170,7 +170,7 @@ class DraftGenerator:
         output_path.mkdir(parents=True, exist_ok=True)
 
         video_name = Path(video_path).stem
-        transcription_file = output_path / f"{video_name}_transcription.json"
+        transcription_file = output_path / f"文字起こし_{video_name}.json"
 
         data = self._serialize_transcription(transcription)
 

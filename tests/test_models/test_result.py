@@ -9,13 +9,13 @@ class TestGenerateResult:
     def test_instance_creation_success(self):
         """成功時のインスタンス生成のテスト"""
         result = GenerateResult(
-            draft_file_path="output/draft.md",
-            subtitle_file_path="output/subtitle.srt",
+            draft_file_path="output/企画案_sample.md",
+            subtitle_file_path="output/字幕_sample.srt",
             success=True,
         )
 
-        assert result.draft_file_path == "output/draft.md"
-        assert result.subtitle_file_path == "output/subtitle.srt"
+        assert result.draft_file_path == "output/企画案_sample.md"
+        assert result.subtitle_file_path == "output/字幕_sample.srt"
         assert result.success is True
         assert result.error_message is None
 
@@ -36,18 +36,18 @@ class TestGenerateResult:
     def test_equality_comparison(self):
         """等価性比較のテスト"""
         result1 = GenerateResult(
-            draft_file_path="output/draft.md",
-            subtitle_file_path="output/subtitle.srt",
+            draft_file_path="output/企画案_sample.md",
+            subtitle_file_path="output/字幕_sample.srt",
             success=True,
         )
         result2 = GenerateResult(
-            draft_file_path="output/draft.md",
-            subtitle_file_path="output/subtitle.srt",
+            draft_file_path="output/企画案_sample.md",
+            subtitle_file_path="output/字幕_sample.srt",
             success=True,
         )
         result3 = GenerateResult(
-            draft_file_path="output/draft.md",
-            subtitle_file_path="output/subtitle.srt",
+            draft_file_path="output/企画案_sample.md",
+            subtitle_file_path="output/字幕_sample.srt",
             success=False,
             error_message="エラー",
         )
@@ -58,22 +58,22 @@ class TestGenerateResult:
     def test_string_representation(self):
         """文字列表現のテスト"""
         result = GenerateResult(
-            draft_file_path="output/draft.md",
-            subtitle_file_path="output/subtitle.srt",
+            draft_file_path="output/企画案_sample.md",
+            subtitle_file_path="output/字幕_sample.srt",
             success=True,
         )
         str_repr = str(result)
 
         assert "GenerateResult" in str_repr
-        assert "output/draft.md" in str_repr
+        assert "output/企画案_sample.md" in str_repr
         assert "True" in str_repr
 
     def test_success_flag_validation(self):
         """成功フラグの検証テスト"""
         # 成功時
         success_result = GenerateResult(
-            draft_file_path="output/draft.md",
-            subtitle_file_path="output/subtitle.srt",
+            draft_file_path="output/企画案_sample.md",
+            subtitle_file_path="output/字幕_sample.srt",
             success=True,
         )
         assert success_result.success is True
@@ -90,8 +90,8 @@ class TestGenerateResult:
     def test_field_types(self):
         """フィールドの型の正確性のテスト"""
         result = GenerateResult(
-            draft_file_path="output/draft.md",
-            subtitle_file_path="output/subtitle.srt",
+            draft_file_path="output/企画案_sample.md",
+            subtitle_file_path="output/字幕_sample.srt",
             success=True,
             error_message=None,
         )
@@ -105,8 +105,8 @@ class TestGenerateResult:
         """オプショナルなエラーメッセージのテスト"""
         # エラーメッセージなし（デフォルト）
         result_no_error = GenerateResult(
-            draft_file_path="output/draft.md",
-            subtitle_file_path="output/subtitle.srt",
+            draft_file_path="output/企画案_sample.md",
+            subtitle_file_path="output/字幕_sample.srt",
             success=True,
         )
         assert result_no_error.error_message is None
@@ -122,8 +122,8 @@ class TestGenerateResult:
 
         # 明示的にNoneを設定
         result_explicit_none = GenerateResult(
-            draft_file_path="output/draft.md",
-            subtitle_file_path="output/subtitle.srt",
+            draft_file_path="output/企画案_sample.md",
+            subtitle_file_path="output/字幕_sample.srt",
             success=True,
             error_message=None,
         )
@@ -145,8 +145,8 @@ class TestGenerateResult:
 
     def test_long_file_paths(self):
         """長いファイルパスのテスト"""
-        long_draft_path = "very/long/path/to/output/directory/with/many/subdirectories/draft.md"
-        long_subtitle_path = "very/long/path/to/output/directory/with/many/subdirectories/subtitle.srt"
+        long_draft_path = "very/long/path/to/output/directory/with/many/subdirectories/企画案_sample.md"
+        long_subtitle_path = "very/long/path/to/output/directory/with/many/subdirectories/字幕_sample.srt"
 
         result = GenerateResult(
             draft_file_path=long_draft_path,
@@ -165,14 +165,14 @@ class TestSampleData:
     def test_sample_success_result(self):
         """設計書の成功例サンプルデータでのテスト"""
         result = GenerateResult(
-            draft_file_path="output/draft.md",
-            subtitle_file_path="output/subtitle.srt",
+            draft_file_path="output/企画案_sample.md",
+            subtitle_file_path="output/字幕_sample.srt",
             success=True,
         )
 
         # 基本的な検証
-        assert result.draft_file_path == "output/draft.md"
-        assert result.subtitle_file_path == "output/subtitle.srt"
+        assert result.draft_file_path == "output/企画案_sample.md"
+        assert result.subtitle_file_path == "output/字幕_sample.srt"
         assert result.success is True
         assert result.error_message is None
 
@@ -207,20 +207,20 @@ class TestSampleData:
         # 様々な成功パターン
         success_cases = [
             {
-                "draft_file_path": "output/2025-01-10_draft.md",
-                "subtitle_file_path": "output/2025-01-10_subtitle.srt",
+                "draft_file_path": "output/企画案_2025-01-10.md",
+                "subtitle_file_path": "output/字幕_2025-01-10.srt",
                 "success": True,
                 "error_message": None,
             },
             {
-                "draft_file_path": "/tmp/shortmovie/draft_001.md",
-                "subtitle_file_path": "/tmp/shortmovie/subtitle_001.srt",
+                "draft_file_path": "/tmp/shortmovie/企画案_001.md",
+                "subtitle_file_path": "/tmp/shortmovie/字幕_001.srt",
                 "success": True,
                 "error_message": None,
             },
             {
-                "draft_file_path": "C:\\Users\\user\\Documents\\output\\draft.md",
-                "subtitle_file_path": "C:\\Users\\user\\Documents\\output\\subtitle.srt",
+                "draft_file_path": "C:\\Users\\user\\Documents\\output\\企画案_sample.md",
+                "subtitle_file_path": "C:\\Users\\user\\Documents\\output\\字幕_sample.srt",
                 "success": True,
                 "error_message": None,
             },
@@ -273,26 +273,26 @@ class TestSampleData:
         """部分的成功シナリオのテスト"""
         # 企画書は生成されたが字幕ファイルの生成に失敗した場合
         partial_result = GenerateResult(
-            draft_file_path="output/draft.md",
+            draft_file_path="output/企画案_sample.md",
             subtitle_file_path="",
             success=False,
             error_message="字幕ファイルの生成に失敗しました",
         )
 
-        assert partial_result.draft_file_path == "output/draft.md"
+        assert partial_result.draft_file_path == "output/企画案_sample.md"
         assert partial_result.subtitle_file_path == ""
         assert partial_result.success is False
-        assert "字幕ファイル" in partial_result.error_message
+        assert partial_result.error_message is not None and "字幕ファイル" in partial_result.error_message
 
         # 字幕ファイルは生成されたが企画書の生成に失敗した場合
         another_partial_result = GenerateResult(
             draft_file_path="",
-            subtitle_file_path="output/subtitle.srt",
+            subtitle_file_path="output/字幕_sample.srt",
             success=False,
             error_message="企画書の生成に失敗しました",
         )
 
         assert another_partial_result.draft_file_path == ""
-        assert another_partial_result.subtitle_file_path == "output/subtitle.srt"
+        assert another_partial_result.subtitle_file_path == "output/字幕_sample.srt"
         assert another_partial_result.success is False
-        assert "企画書" in another_partial_result.error_message
+        assert another_partial_result.error_message is not None and "企画書" in another_partial_result.error_message

@@ -43,8 +43,8 @@ graph TD
     G --> H[DraftGenerator]
     G --> I[SrtGenerator]
 
-    H --> J[output/draft.md]
-    I --> K[output/subtitle.srt]
+    H --> J[output/企画案_video.md]
+    I --> K[output/字幕_video.srt]
 
     style B fill:#e8f5e8
     style D fill:#e1f5fe

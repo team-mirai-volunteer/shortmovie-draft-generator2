@@ -22,9 +22,9 @@ class SrtGenerator:
 
     Example:
         >>> generator = SrtGenerator()
-        >>> file_path = generator.generate_srt_file(transcription, "output/subtitle.srt")
+        >>> file_path = generator.generate_srt_file(transcription, "output/字幕_video.srt")
         >>> print(f"字幕ファイル: {file_path}")
-        字幕ファイル: output/subtitle.srt
+        字幕ファイル: output/字幕_video.srt
     """
 
     def generate_srt_file(self, transcription: TranscriptionResult, output_file_path: str) -> str:

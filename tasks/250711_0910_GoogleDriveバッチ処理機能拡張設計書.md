@@ -159,12 +159,12 @@ def list_folders(self, folder_url: str) -> List[DriveFile]:
 ```
 output_folder/
 ├── video01/
-│   ├── draft.md
-│   ├── subtitle.srt
+│   ├── 企画案_video01.md
+│   ├── 字幕_video01.srt
 │   └── video01.mp4
 └── video02/
-    ├── draft.md
-    ├── subtitle.srt
+    ├── 企画案_video02.md
+    ├── 字幕_video02.srt
     └── video02.mp4
 ```
 

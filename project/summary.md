@@ -33,8 +33,8 @@ graph TD
     E --> H[ChatGPT API]
 
     I[input/input.mp4] --> B
-    B --> J[output/draft.md]
-    B --> K[output/subtitle.srt]
+    B --> J[output/企画案_input.md]
+    B --> K[output/字幕_input.srt]
 
     L[.env] --> C
     L --> E
@@ -229,11 +229,11 @@ shortmovie-draft-generator2/
 ├── intermediate/
 │   ├── .gitkeep
 │   ├── audio.wav (gitignore)
-│   └── transcription.json (gitignore)
+│   └── 文字起こし_input.json (gitignore)
 └── output/
     ├── .gitkeep
-    ├── draft.md (gitignore)
-    └── subtitle.srt (gitignore)
+    ├── 企画案_input.md (gitignore)
+    └── 字幕_input.srt (gitignore)
 ```
 
 ## 設定管理
@@ -263,7 +263,7 @@ flake8 = "^6.0.0"
 
 ## 出力形式
 
-### 企画書 (draft.md)
+### 企画書 (企画案_[ファイル名].md)
 ```markdown
 # ショート動画企画書
 
@@ -283,7 +283,7 @@ flake8 = "^6.0.0"
 ...
 ```
 
-### 字幕ファイル (subtitle.srt)
+### 字幕ファイル (字幕_[ファイル名].srt)
 ```
 1
 00:00:00,000 --> 00:00:03,000

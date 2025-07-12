@@ -160,11 +160,11 @@ class TestGenerateShortDraftUsecase:
         mock_output_path.is_dir.return_value = True
 
         mock_draft_file_path = Mock()
-        mock_draft_file_path.__str__ = Mock(return_value="output/test_video_draft.md")
+        mock_draft_file_path.__str__ = Mock(return_value="output/企画案_test_video.md")
 
         mock_subtitle_file_path = Mock()
         mock_subtitle_file_path.__str__ = Mock(
-            return_value="output/test_video_subtitle.srt"
+            return_value="output/字幕_test_video.srt"
         )
 
         def path_side_effect(path_str):
@@ -179,14 +179,14 @@ class TestGenerateShortDraftUsecase:
 
         mock_output_path.__truediv__ = Mock()
         mock_output_path.__truediv__.side_effect = lambda x: (
-            mock_draft_file_path if "draft" in x else mock_subtitle_file_path
+            mock_draft_file_path if "企画案_" in x else mock_subtitle_file_path
         )
 
         self.mock_draft_generator.generate_from_video.return_value = (
             self.sample_draft_result
         )
         self.mock_srt_generator.generate_srt_file.return_value = (
-            "output/test_video_subtitle.srt"
+            "output/字幕_test_video.srt"
         )
 
         result = self.usecase.execute("test_video.mp4", "output/")
@@ -194,8 +194,8 @@ class TestGenerateShortDraftUsecase:
         assert isinstance(result, GenerateResult)
         assert result.success is True
         assert result.error_message is None
-        assert "test_video_draft.md" in result.draft_file_path
-        assert "test_video_subtitle.srt" in result.subtitle_file_path
+        assert "企画案_test_video.md" in result.draft_file_path
+        assert "字幕_test_video.srt" in result.subtitle_file_path
 
         self.mock_draft_generator.generate_from_video.assert_called_once_with(
             "test_video.mp4", "output/"
@@ -267,7 +267,6 @@ class TestGenerateShortDraftUsecaseIntegration:
 
         from unittest.mock import Mock
         mock_google_drive_client = Mock()
-        
         usecase = GenerateShortDraftUsecase(draft_generator, srt_generator, mock_google_drive_client)
 
         with tempfile.TemporaryDirectory() as temp_dir:
