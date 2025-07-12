@@ -9,7 +9,7 @@ resource "google_cloud_scheduler_job" "shortmovie_generator_job" {
   http_target {
     http_method = "POST"
     uri         = "https://${var.region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${var.project_id}/jobs/${var.cloud_run_job_name}:run"
-    
+
     oauth_token {
       service_account_email = google_service_account.scheduler_sa.email
       scope                 = "https://www.googleapis.com/auth/cloud-platform"

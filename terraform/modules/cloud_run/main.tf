@@ -6,7 +6,7 @@ resource "google_cloud_run_service" "shortmovie_generator" {
     spec {
       containers {
         image = var.container_image
-        
+
         resources {
           limits = {
             cpu    = var.cpu_limit
