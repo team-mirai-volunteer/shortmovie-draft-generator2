@@ -255,11 +255,15 @@ class QASegmenter:
             text = segments[i].get("text", "").strip()
 
             for pattern in self.question_patterns:
-                if re.search(pattern, text) and (next_question_idx is None or i < next_question_idx):
+                if re.search(pattern, text) and (
+                    next_question_idx is None or i < next_question_idx
+                ):
                     return i - 1
 
             for pattern in self.transition_patterns:
-                if re.match(pattern, text) and (next_question_idx is None or i < next_question_idx):
+                if re.match(pattern, text) and (
+                    next_question_idx is None or i < next_question_idx
+                ):
                     return i - 1
 
         if next_question_idx is not None:
