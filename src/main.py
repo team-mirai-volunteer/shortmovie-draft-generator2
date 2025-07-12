@@ -23,8 +23,7 @@ class DIContainer:
     """
 
     def __init__(self) -> None:
-        """環境変数を読み込み、各サービスを初期化"""
-        load_dotenv()
+        """各サービスを初期化（環境変数は事前に読み込み済み）"""
 
         # 既存の設定
         self.openai_api_key = self._get_required_env("OPENAI_API_KEY")
@@ -136,6 +135,8 @@ def main(
         poetry run python src/main.py --drive-batch --input-drive-folder "https://drive.google.com/..." --output-drive-folder "https://drive.google.com/..."
     """
     try:
+        # 環境変数を最初に読み込み
+        load_dotenv()
         if drive_batch:
             input_folder = input_drive_folder or os.getenv("INPUT_DRIVE_FOLDER")
             output_folder = output_drive_folder or os.getenv("OUTPUT_DRIVE_FOLDER")
