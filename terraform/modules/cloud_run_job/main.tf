@@ -7,7 +7,7 @@ resource "google_cloud_run_v2_job" "shortmovie_generator" {
     template {
       containers {
         image = var.container_image
-        args  = ["python", "-m", "src.main", "--drive"]
+        args  = ["python", "-m", "src.main", "--drive-batch"]
         
         resources {
           limits = {
