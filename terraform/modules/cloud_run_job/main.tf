@@ -49,7 +49,7 @@ resource "google_cloud_run_v2_job" "shortmovie_generator" {
       volumes {
         name = "service-account-key"
         secret {
-          secret_name = google_secret_manager_secret.service_account_key.secret_id
+          secret = google_secret_manager_secret.service_account_key.secret_id
           items {
             version = "latest"
             path    = "service-account-key.json"
