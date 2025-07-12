@@ -93,7 +93,6 @@ class QASegmenter:
 
         Raises:
             QASegmenterError: セグメント抽出に失敗した場合
-        
         """
         try:
             segments = transcription_data.get("segments", [])
@@ -133,7 +132,6 @@ class QASegmenter:
 
         Returns:
             (セグメントインデックス, セグメントデータ, 質問者名) のタプルリスト
-        
         """
         question_markers = []
 
@@ -253,16 +251,14 @@ class QASegmenter:
 
         for i in range(answer_start_idx + 1, len(segments)):
             text = segments[i].get("text", "").strip()
-            
+
             for pattern in self.question_patterns:
-                if re.search(pattern, text):
-                    if next_question_idx is None or i < next_question_idx:
-                        return i - 1
-            
+                if re.search(pattern, text) and (next_question_idx is None or i < next_question_idx):
+                    return i - 1
+
             for pattern in self.transition_patterns:
-                if re.match(pattern, text):
-                    if next_question_idx is None or i < next_question_idx:
-                        return i - 1
+                if re.match(pattern, text) and (next_question_idx is None or i < next_question_idx):
+                    return i - 1
 
         if next_question_idx is not None:
             return next_question_idx - 1
