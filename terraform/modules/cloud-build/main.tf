@@ -16,7 +16,7 @@ resource "google_project_iam_member" "cloud_build_permissions" {
     "roles/run.admin",
     "roles/iam.serviceAccountUser"
   ])
-  
+
   project = var.project_id
   role    = each.value
   member  = "serviceAccount:${google_service_account.cloud_build.email}"

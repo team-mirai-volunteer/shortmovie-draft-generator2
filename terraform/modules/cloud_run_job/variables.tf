@@ -42,8 +42,8 @@ variable "openai_api_key" {
   sensitive   = true
 }
 
-variable "service_account_key_json" {
-  description = "Service account key JSON content"
+variable "service_account_key_base64" {
+  description = "Base64-encoded service account key JSON for Google Drive access"
   type        = string
   sensitive   = true
 }

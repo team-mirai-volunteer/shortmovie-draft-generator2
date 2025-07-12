@@ -1,3 +1,21 @@
+# Google Driveサービスアカウントキーを保存するシークレット
+resource "google_secret_manager_secret" "service_account_key" {
+  project   = var.project_id
+  secret_id = "${var.service_name}-service-account-key"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.secretmanager_api]
+}
+
+# シークレットのバージョン（実際のキーデータ）
+resource "google_secret_manager_secret_version" "service_account_key" {
+  secret      = google_secret_manager_secret.service_account_key.id
+  secret_data = var.service_account_key_base64
+}
+
 resource "google_cloud_run_v2_job" "shortmovie_generator" {
   name     = var.service_name
   location = var.region
@@ -8,7 +26,7 @@ resource "google_cloud_run_v2_job" "shortmovie_generator" {
       containers {
         image = var.container_image
         args  = ["python", "-m", "src.main", "--drive-batch"]
-        
+
         resources {
           limits = {
             cpu    = var.cpu_limit
@@ -22,8 +40,13 @@ resource "google_cloud_run_v2_job" "shortmovie_generator" {
         }
 
         env {
-          name  = "GOOGLE_SERVICE_ACCOUNT_KEY_PATH"
-          value = "/secrets/service-account-key.json"
+          name = "GOOGLE_SERVICE_ACCOUNT_KEY_BASE64"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.service_account_key.secret_id
+              version = "latest"
+            }
+          }
         }
 
         env {
@@ -41,32 +64,17 @@ resource "google_cloud_run_v2_job" "shortmovie_generator" {
           value = var.slack_webhook_url
         }
 
-        volume_mounts {
-          name       = "service-account-key"
-          mount_path = "/secrets"
-        }
       }
 
-      volumes {
-        name = "service-account-key"
-        secret {
-          secret = google_secret_manager_secret.service_account_key.secret_id
-          items {
-            version = "latest"
-            path    = "service-account-key.json"
-          }
-        }
-      }
-
-      timeout           = "${var.timeout_seconds}s"
-      service_account   = google_service_account.cloud_run_sa.email
-      max_retries       = 1
+      timeout         = "${var.timeout_seconds}s"
+      service_account = google_service_account.cloud_run_sa.email
+      max_retries     = 1
     }
   }
 
   depends_on = [
     google_project_service.cloud_run_api,
-    google_secret_manager_secret_version.service_account_key_version
+    google_secret_manager_secret_version.service_account_key
   ]
 }
 
@@ -74,22 +82,6 @@ resource "google_service_account" "cloud_run_sa" {
   account_id   = "${var.service_name}-sa"
   display_name = "Service Account for ${var.service_name}"
   project      = var.project_id
-}
-
-resource "google_secret_manager_secret" "service_account_key" {
-  secret_id = "${var.service_name}-service-account-key"
-  project   = var.project_id
-
-  replication {
-    auto {}
-  }
-
-  depends_on = [google_project_service.secretmanager_api]
-}
-
-resource "google_secret_manager_secret_version" "service_account_key_version" {
-  secret      = google_secret_manager_secret.service_account_key.id
-  secret_data = var.service_account_key_json
 }
 
 resource "google_secret_manager_secret_iam_member" "cloud_run_secret_accessor" {

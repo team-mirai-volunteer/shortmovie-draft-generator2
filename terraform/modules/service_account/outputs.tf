@@ -4,7 +4,7 @@ output "service_account_email" {
 }
 
 output "service_account_key" {
-  description = "Service account key"
+  description = "Base64-encoded service account key"
   value       = google_service_account_key.drive_access_key.private_key
   sensitive   = true
 }

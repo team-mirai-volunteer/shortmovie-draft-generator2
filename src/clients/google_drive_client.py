@@ -1,5 +1,6 @@
 """Google Drive API v3 サービスアカウント認証クライアント"""
 
+import base64
 import json
 import mimetypes
 import re
@@ -89,14 +90,21 @@ class GoogleDriveClient:
 
     """
 
-    def __init__(self, service_account_path: str | None = None):
+    def __init__(self, service_account_path: str | None = None, service_account_json: str | None = None, service_account_base64: str | None = None):
         """GoogleDriveClientを初期化
 
         Args:
-            service_account_path: サービスアカウントキーファイルのパス（Noneの場合はApplication Default Credentialsを使用）
+            service_account_path: サービスアカウントキーファイルのパス
+            service_account_json: サービスアカウントキーJSON文字列
+            service_account_base64: base64エンコードされたサービスアカウントキーJSON
+
+        Note:
+            いずれも指定されない場合はApplication Default Credentialsを使用
 
         """
         self.service_account_path = service_account_path
+        self.service_account_json = service_account_json
+        self.service_account_base64 = service_account_base64
         self.scopes = ["https://www.googleapis.com/auth/drive"]
 
         # サポートする動画ファイル拡張子
@@ -114,6 +122,15 @@ class GoogleDriveClient:
             if self.service_account_path:
                 # サービスアカウントキーファイルから認証情報を読み込み
                 credentials = service_account.Credentials.from_service_account_file(self.service_account_path, scopes=self.scopes)
+            elif self.service_account_json:
+                # JSON文字列から認証情報を読み込み
+                service_account_info = json.loads(self.service_account_json)
+                credentials = service_account.Credentials.from_service_account_info(service_account_info, scopes=self.scopes)
+            elif self.service_account_base64:
+                # base64エンコードされたJSONから認証情報を読み込み
+                decoded_json = base64.b64decode(self.service_account_base64).decode("utf-8")
+                service_account_info = json.loads(decoded_json)
+                credentials = service_account.Credentials.from_service_account_info(service_account_info, scopes=self.scopes)
             else:
                 # Application Default Credentials (ADC) を使用
                 credentials, _ = google.auth.default(scopes=self.scopes)
@@ -127,7 +144,12 @@ class GoogleDriveClient:
                 raise GoogleDriveError(f"サービスアカウントキーファイルが見つかりません: {self.service_account_path}") from e
             raise GoogleDriveError("Application Default Credentialsが見つかりません") from e
         except json.JSONDecodeError as e:
-            raise GoogleDriveError(f"サービスアカウントキーファイルの形式が正しくありません: {self.service_account_path}") from e
+            if self.service_account_path:
+                raise GoogleDriveError(f"サービスアカウントキーファイルの形式が正しくありません: {self.service_account_path}") from e
+            elif self.service_account_json:
+                raise GoogleDriveError("サービスアカウントJSON文字列の形式が正しくありません") from e
+            else:
+                raise GoogleDriveError("base64デコード後のJSON形式が正しくありません") from e
         except Exception as e:
             raise GoogleDriveError(f"Google Drive APIサービスの初期化に失敗しました: {e!s}") from e
 
@@ -446,12 +468,21 @@ class GoogleDriveClient:
 
     def _get_service_account_email(self) -> str:
         """サービスアカウントのメールアドレスを取得"""
-        if self.service_account_path is None:
-            return "unknown"
         try:
-            with open(self.service_account_path) as f:
-                service_account_info = json.load(f)
-                email = service_account_info.get("client_email")
-                return str(email) if email is not None else "unknown"
+            service_account_info = None
+
+            if self.service_account_path:
+                with open(self.service_account_path) as f:
+                    service_account_info = json.load(f)
+            elif self.service_account_json:
+                service_account_info = json.loads(self.service_account_json)
+            elif self.service_account_base64:
+                decoded_json = base64.b64decode(self.service_account_base64).decode("utf-8")
+                service_account_info = json.loads(decoded_json)
+            else:
+                return "unknown"
+
+            email = service_account_info.get("client_email") if service_account_info else None
+            return str(email) if email is not None else "unknown"
         except Exception:
             return "unknown"
