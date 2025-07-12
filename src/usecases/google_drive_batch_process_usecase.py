@@ -107,7 +107,7 @@ class GoogleDriveBatchProcessUsecase:
         else:
             query = f"'{output_folder_id}' in parents and name='{video_name}' and mimeType='application/vnd.google-apps.folder'"
             results = self.google_drive_client.service.files().list(q=query, fields="files(id)", supportsAllDrives=True).execute()
-            return results["files"][0]["id"]
+            return str(results["files"][0]["id"])
 
     def _find_unprocessed_video_from_drive(self, input_folder_url: str, output_folder_url: str) -> DriveFile | None:
         """Google Driveフォルダから未処理動画を1本検出
