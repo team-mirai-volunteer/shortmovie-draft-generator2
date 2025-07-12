@@ -1,16 +1,8 @@
 """質問回答セグメント抽出ツール"""
 
-import json
 import re
 from typing import List, Dict, Any, Tuple, Optional
 from dataclasses import dataclass
-from pathlib import Path
-
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from models.transcription import TranscriptionSegment, TranscriptionResult
 
 
 @dataclass

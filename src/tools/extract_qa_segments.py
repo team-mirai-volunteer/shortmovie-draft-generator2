@@ -4,11 +4,10 @@
 import json
 import argparse
 import sys
+import os
 from pathlib import Path
 from typing import Dict, Any
 
-import sys
-import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from qa_segmenter import QASegmenter, QASegmenterError
