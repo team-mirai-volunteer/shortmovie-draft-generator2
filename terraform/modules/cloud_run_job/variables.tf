@@ -36,14 +36,13 @@ variable "timeout_seconds" {
   default     = 3600
 }
 
-variable "openai_api_key" {
-  description = "OpenAI API key"
+variable "openai_api_key_secret_id" {
+  description = "Secret Manager secret ID for OpenAI API key"
   type        = string
-  sensitive   = true
 }
 
-variable "service_account_key_json" {
-  description = "Service account key JSON content"
+variable "service_account_key_base64" {
+  description = "Base64-encoded service account key JSON for Google Drive access"
   type        = string
   sensitive   = true
 }
@@ -58,8 +57,7 @@ variable "google_drive_destination_folder_url" {
   type        = string
 }
 
-variable "slack_webhook_url" {
-  description = "Slack webhook URL"
+variable "slack_webhook_secret_id" {
+  description = "Secret Manager secret ID for Slack webhook URL"
   type        = string
-  sensitive   = true
 }

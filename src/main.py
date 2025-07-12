@@ -36,6 +36,8 @@ class DIContainer:
         # Google Drive API設定（サービスアカウント）
         # Cloud Runではオプショナル、ローカルでは必須
         self.google_service_account_path = os.getenv("GOOGLE_SERVICE_ACCOUNT_KEY_PATH")
+        self.google_service_account_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_KEY_JSON")  # JSON文字列として直接指定
+        self.google_service_account_base64 = os.getenv("GOOGLE_SERVICE_ACCOUNT_KEY_BASE64")  # base64エンコードされたJSON
         self.google_drive_upload_folder_id = os.getenv("GOOGLE_DRIVE_UPLOAD_FOLDER_ID")
 
         # Google Driveバッチ処理用（新規追加）
@@ -50,8 +52,12 @@ class DIContainer:
 
         self.chatgpt_client = ChatGPTClient(api_key=self.openai_api_key, model=self.chatgpt_model)
 
-        # Cloud Runでの実行時はADCを使用、ローカルではキーファイルを使用
-        self.google_drive_client = GoogleDriveClient(service_account_path=self.google_service_account_path if self.google_service_account_path else None)
+        # Cloud Runでの実行時はADCを使用、ローカルではキーファイルまたはJSON文字列を使用
+        self.google_drive_client = GoogleDriveClient(
+            service_account_path=self.google_service_account_path if self.google_service_account_path else None,
+            service_account_json=self.google_service_account_json if self.google_service_account_json else None,
+            service_account_base64=self.google_service_account_base64 if self.google_service_account_base64 else None,
+        )
 
         self.prompt_builder = PromptBuilder()
 
@@ -101,7 +107,11 @@ class DIContainer:
             click.echo(f"エラー: 環境変数 {key} が設定されていません", err=True)
             click.echo("以下の環境変数を設定してください:", err=True)
             click.echo("  OPENAI_API_KEY=your_openai_api_key", err=True)
-            click.echo("  GOOGLE_SERVICE_ACCOUNT_PATH=path/to/service-account-key.json", err=True)
+            click.echo("  GOOGLE_SERVICE_ACCOUNT_KEY_PATH=path/to/service-account-key.json", err=True)
+            click.echo("  # または", err=True)
+            click.echo('  GOOGLE_SERVICE_ACCOUNT_KEY_JSON=\'{"type":"service_account","project_id":"..."}\'  # JSON文字列として直接指定', err=True)
+            click.echo("  # または", err=True)
+            click.echo("  GOOGLE_SERVICE_ACCOUNT_KEY_BASE64='eyJ0eXBlIjoic2VydmljZV9hY2NvdW50IiwicHJv...'  # base64エンコードされたJSON", err=True)
             click.echo("", err=True)
             click.echo("オプション:", err=True)
             click.echo("  CHATGPT_MODEL=gpt-4o  # デフォルト: gpt-4o", err=True)

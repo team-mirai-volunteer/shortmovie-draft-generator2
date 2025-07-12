@@ -50,8 +50,13 @@ WHISPER_MODEL=whisper-1
 #### Google Drive API 設定（メイン機能）
 
 ```bash
-# 必須: サービスアカウントキーファイルのパス
-GOOGLE_SERVICE_ACCOUNT_PATH=path/to/service-account-key.json
+# 必須: サービスアカウント認証 (いずれか1つを選択)
+# オプション1: ファイルパス
+GOOGLE_SERVICE_ACCOUNT_KEY_PATH=path/to/service-account-key.json
+# オプション2: JSON文字列
+GOOGLE_SERVICE_ACCOUNT_KEY_JSON='{"type":"service_account","project_id":"..."}'
+# オプション3: Base64エンコードされたJSON (Cloud Run Job推奨)
+GOOGLE_SERVICE_ACCOUNT_KEY_BASE64=eyJ0eXBlIjoic2VydmljZV9hY2NvdW50IiwicHJvamVjdF9pZCI6Li4ufQ==
 
 # 必須: 入力・出力フォルダURL
 INPUT_DRIVE_FOLDER=https://drive.google.com/drive/folders/input_folder_id
