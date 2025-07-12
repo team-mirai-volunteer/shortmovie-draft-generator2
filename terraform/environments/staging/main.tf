@@ -35,9 +35,9 @@ module "service_account" {
   service_name = "${local.app_name}-${local.environment}"
 }
 
-# Cloud Run service
-module "cloud_run" {
-  source = "../../modules/cloud_run"
+# Cloud Run Job
+module "cloud_run_job" {
+  source = "../../modules/cloud_run_job"
   
   project_id               = var.project_id
   region                   = var.region
@@ -56,17 +56,16 @@ module "cloud_run" {
 }
 
 # Cloud Scheduler for periodic execution
-module "cloud_scheduler" {
-  source = "../../modules/cloud_scheduler"
+module "cloud_scheduler_job" {
+  source = "../../modules/cloud_scheduler_job"
   
-  project_id             = var.project_id
-  region                 = var.region
-  service_name           = "${local.app_name}-${local.environment}"
-  cloud_run_url          = module.cloud_run.service_url
-  cloud_run_service_name = module.cloud_run.service_name
-  schedule               = var.schedule
-  time_zone              = var.time_zone
+  project_id         = var.project_id
+  region             = var.region
+  service_name       = "${local.app_name}-${local.environment}"
+  cloud_run_job_name = module.cloud_run_job.job_name
+  schedule           = var.schedule
+  time_zone          = var.time_zone
   
-  depends_on = [module.cloud_run]
+  depends_on = [module.cloud_run_job]
 }
 

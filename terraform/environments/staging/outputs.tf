@@ -13,9 +13,9 @@ output "cloud_build_trigger_name" {
   value       = module.cloud_build.trigger_name
 }
 
-output "cloud_run_service_url" {
-  description = "URL of the Cloud Run service"
-  value       = module.cloud_run.service_url
+output "cloud_run_job_name" {
+  description = "Name of the Cloud Run job"
+  value       = module.cloud_run_job.job_name
 }
 
 output "service_account_email" {
@@ -25,5 +25,5 @@ output "service_account_email" {
 
 output "scheduler_job_name" {
   description = "Name of the Cloud Scheduler job"
-  value       = module.cloud_scheduler.scheduler_job_name
+  value       = module.cloud_scheduler_job.scheduler_job_name
 }
