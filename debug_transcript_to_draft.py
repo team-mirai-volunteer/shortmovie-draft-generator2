@@ -11,6 +11,7 @@
 
 import os
 import sys
+import traceback
 from pathlib import Path
 
 import click
@@ -62,6 +63,7 @@ def main(transcript_file: Path, output_dir: Path, verbose: bool) -> None:
         transcript_file: 文字起こしJSONファイルのパス
         output_dir: 出力ディレクトリのパス
         verbose: 詳細ログの有効化
+
     """
     try:
         if verbose:
@@ -107,7 +109,6 @@ def main(transcript_file: Path, output_dir: Path, verbose: bool) -> None:
     except Exception as e:
         click.echo(f"❌ 予期しないエラーが発生しました: {e!s}", err=True)
         if verbose:
-            import traceback
             click.echo("\nスタックトレース:", err=True)
             click.echo(traceback.format_exc(), err=True)
         sys.exit(1)
