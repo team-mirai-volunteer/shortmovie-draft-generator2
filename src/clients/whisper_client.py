@@ -111,19 +111,19 @@ class WhisperClient:
 
         audio_path = None
         try:
-            print(f"DEBUG: ステップ1/4: 音声抽出開始")
+            print("DEBUG: ステップ1/4: 音声抽出開始")
             audio_path = self._extract_audio(video_path)
 
-            print(f"DEBUG: ステップ2/4: Whisper API呼び出し開始")
+            print("DEBUG: ステップ2/4: Whisper API呼び出し開始")
             response_data = self._call_whisper_api(audio_path)
 
-            print(f"DEBUG: ステップ3/4: レスポンス検証開始")
+            print("DEBUG: ステップ3/4: レスポンス検証開始")
             self._validate_response_data(response_data)
 
-            print(f"DEBUG: ステップ4/4: 結果変換開始")
+            print("DEBUG: ステップ4/4: 結果変換開始")
             result = self._convert_to_transcription_result(response_data)
 
-            print(f"DEBUG: 文字起こし処理完了")
+            print("DEBUG: 文字起こし処理完了")
             return result
 
         finally:
@@ -234,7 +234,7 @@ class WhisperClient:
                         timestamp_granularities=["segment"],
                     )
 
-                print(f"DEBUG: Whisper API呼び出し成功")
+                print("DEBUG: Whisper API呼び出し成功")
                 return response.model_dump()
 
             except Exception as e:
@@ -293,7 +293,7 @@ class WhisperClient:
             TranscriptionResult オブジェクト
 
         """
-        print(f"DEBUG: 文字起こし結果の変換開始")
+        print("DEBUG: 文字起こし結果の変換開始")
 
         segments = []
         for segment_data in data["segments"]:
