@@ -123,6 +123,7 @@ class PromptBuilder:
 - 台本の一番はじめの言葉は、フックと直接関係のある、興味をひく発言にしてください。
 - 台本の一番はじめの言葉として、「どうもこんにちは」「アンナタカヒロです。」のようなものは絶対に使わないようにしてください。
 - 台本の順序は、実際の中身と前後しても問題ありません。
+- 台本構成には、おおまかな秒数を抜き出す形で記載してください。
 
 ---
 
@@ -131,10 +132,10 @@ class PromptBuilder:
 🎨「作画が同じ夫婦⁉️」
 
 【台本構成】
-[00:06–00:16] いやー、作画一緒なんだよね、実は
-[00:16–00:24] 映画の中でもリアルでも、作画が同じという不思議なシンクロ感。
-[00:24–00:34] 二人でいるとキャラ立ちする！ってよく言われますね
-[00:44–00:54] もっと二人のケミストリーを活かさないと…！
+00:06 いやー、作画一緒なんだよね、実は
+00:16 映画の中でもリアルでも、作画が同じという不思議なシンクロ感。
+00:24 二人でいるとキャラ立ちする！ってよく言われますね
+00:44 もっと二人のケミストリーを活かさないと…！
 """
 
     def __init__(self) -> None:
@@ -195,24 +196,21 @@ class PromptBuilder:
     "summary": "{self._escape_json_string(hook_item.summary)}"
 }}"""
 
-        # セグメント情報をJSON形式で整形
-        segments_json = "[\n"
+        # セグメント情報を簡潔なフォーマットで整形
+        segments_text = ""
         for segment in segments:
-            # JSONエスケープ処理
-            escaped_text = self._escape_json_string(segment.text)
-            segments_json += f"""    {{
-        "start_time": {segment.start_time},
-        "end_time": {segment.end_time},
-        "text": "{escaped_text}"
-    }},\n"""
-        segments_json = segments_json.rstrip(",\n") + "\n]"
+            # 開始時刻を分:秒.小数点形式に変換
+            start_time_formatted = self._format_time_to_minutes_seconds(segment.start_time)
+            segments_text += f"{start_time_formatted} {segment.text}\n"
+        segments_text = segments_text.rstrip("\n")
 
         # テンプレートのプレースホルダーを置換
         prompt = self.SCRIPT_PROMPT_TEMPLATE
 
         # プレースホルダーを置換
         prompt = prompt.replace("{{ITEM_PLACEHOLDER}}", item_json)
-        prompt = prompt.replace("{{SEGMENTS_PLACEHOLDER}}", segments_json)
+        prompt = prompt.replace("{{SEGMENTS_PLACEHOLDER}}", segments_text)
+        print(prompt)
 
         return prompt
 
@@ -242,6 +240,20 @@ class PromptBuilder:
         minutes = int((seconds % 3600) // 60)
         secs = int(seconds % 60)
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+    def _format_time_to_minutes_seconds(self, seconds: float) -> str:
+        """秒数をm:ss.dd形式に変換
+
+        Args:
+            seconds: 変換する秒数
+
+        Returns:
+            m:ss.dd形式の時刻文字列（例: 81.23 -> 1:21.23）
+
+        """
+        minutes = int(seconds // 60)
+        remaining_seconds = seconds % 60
+        return f"{minutes}:{remaining_seconds:05.2f}"
 
     def _format_segments(self, segments: list[TranscriptionSegment]) -> str:
         """セグメント情報を読みやすい形式にフォーマット
