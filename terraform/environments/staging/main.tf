@@ -35,6 +35,17 @@ module "service_account" {
   service_name = "${local.app_name}-${local.environment}"
 }
 
+# Secret Manager for API keys
+module "secret_manager" {
+  source = "../../modules/secret_manager"
+
+  project_id        = var.project_id
+  app_name          = local.app_name
+  environment       = local.environment
+  openai_api_key    = var.openai_api_key
+  slack_webhook_url = var.slack_webhook_url
+}
+
 # Cloud Run Job
 module "cloud_run_job" {
   source = "../../modules/cloud_run_job"
@@ -46,13 +57,13 @@ module "cloud_run_job" {
   cpu_limit                           = var.cpu_limit
   memory_limit                        = var.memory_limit
   timeout_seconds                     = var.timeout_seconds
-  openai_api_key                      = var.openai_api_key
+  openai_api_key_secret_id            = module.secret_manager.openai_api_key_secret_id
   service_account_key_base64          = module.service_account.service_account_key
   google_drive_source_folder_url      = var.google_drive_source_folder_url
   google_drive_destination_folder_url = var.google_drive_destination_folder_url
-  slack_webhook_url                   = var.slack_webhook_url
+  slack_webhook_secret_id             = module.secret_manager.slack_webhook_secret_id
 
-  depends_on = [module.artifact_registry]
+  depends_on = [module.artifact_registry, module.secret_manager]
 }
 
 # Cloud Scheduler for periodic execution

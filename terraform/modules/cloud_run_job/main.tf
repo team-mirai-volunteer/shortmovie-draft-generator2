@@ -7,7 +7,6 @@ resource "google_secret_manager_secret" "service_account_key" {
     auto {}
   }
 
-  depends_on = [google_project_service.secretmanager_api]
 }
 
 # シークレットのバージョン（実際のキーデータ）
@@ -35,8 +34,13 @@ resource "google_cloud_run_v2_job" "shortmovie_generator" {
         }
 
         env {
-          name  = "OPENAI_API_KEY"
-          value = var.openai_api_key
+          name = "OPENAI_API_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = var.openai_api_key_secret_id
+              version = "latest"
+            }
+          }
         }
 
         env {
@@ -60,8 +64,13 @@ resource "google_cloud_run_v2_job" "shortmovie_generator" {
         }
 
         env {
-          name  = "SLACK_WEBHOOK_URL"
-          value = var.slack_webhook_url
+          name = "SLACK_WEBHOOK_URL"
+          value_source {
+            secret_key_ref {
+              secret  = var.slack_webhook_secret_id
+              version = "latest"
+            }
+          }
         }
 
       }
@@ -90,6 +99,18 @@ resource "google_secret_manager_secret_iam_member" "cloud_run_secret_accessor" {
   member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
 
+resource "google_secret_manager_secret_iam_member" "cloud_run_openai_secret_accessor" {
+  secret_id = var.openai_api_key_secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "cloud_run_slack_secret_accessor" {
+  secret_id = var.slack_webhook_secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
 resource "google_project_service" "cloud_run_api" {
   project = var.project_id
   service = "run.googleapis.com"
@@ -97,9 +118,3 @@ resource "google_project_service" "cloud_run_api" {
   disable_on_destroy = false
 }
 
-resource "google_project_service" "secretmanager_api" {
-  project = var.project_id
-  service = "secretmanager.googleapis.com"
-
-  disable_on_destroy = false
-}
