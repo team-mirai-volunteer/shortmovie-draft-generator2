@@ -15,7 +15,7 @@ terraform {
   cloud {
     organization = "shortmovie-draft-generator"
     workspaces {
-      tags = ["shortmovie-draft-generator"]
+      tags = ["sm-draft"]
     }
   }
 }
