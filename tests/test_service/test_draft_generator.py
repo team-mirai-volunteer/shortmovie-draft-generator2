@@ -9,6 +9,7 @@ from src.builders.prompt_builder import PromptBuilder
 from src.clients.chatgpt_client import ChatGPTClient
 from src.clients.whisper_client import WhisperClient
 from src.models.draft import DraftResult, ShortVideoProposal
+from src.models.hooks import DetailedScript, HookItem
 from src.models.transcription import TranscriptionResult, TranscriptionSegment
 from src.service.draft_generator import (
     DraftGenerationError,
@@ -82,7 +83,6 @@ class TestDraftGenerator:
     def test_generate_draft_success(self):
         """正常な企画書生成のテスト（2段階処理）"""
         # 2段階処理のモック設定
-        from src.models.hooks import DetailedScript, HookItem
 
         # フック抽出のモック
         sample_hook = HookItem(
@@ -124,7 +124,6 @@ class TestDraftGenerator:
         mock_path.return_value.stem = "test_video"
 
         # 2段階処理のモック設定
-        from src.models.hooks import DetailedScript, HookItem
 
         sample_hook = HookItem(
             first_hook="テストフック1", second_hook="テストフック2", third_hook="テストフック3", last_conclusion="テスト結論", summary="テスト要約"

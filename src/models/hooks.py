@@ -61,7 +61,7 @@ class HooksExtractionResult:
 
 @dataclass
 class DetailedScript:
-    """詳細台本生成結果
+    r"""詳細台本生成結果
 
     Attributes:
         hook_item: 対応するフックアイテム
@@ -71,7 +71,7 @@ class DetailedScript:
 
     Example:
         >>> hook = HookItem("hook1", "hook2", "hook3", "conclusion", "summary")
-        >>> script = DetailedScript(hook_item=hook, script_content="【台本構成】\\n[00:00–00:06] ナレーション...", duration_seconds=60, segments_used=[])
+        >>> script = DetailedScript(hook_item=hook, script_content="【台本構成】\n[00:00–00:06] ナレーション...", duration_seconds=60, segments_used=[])
         >>> print(script.duration_seconds)
         60
 

@@ -11,7 +11,6 @@ from src.clients.chatgpt_client import (
     JSONParseError,
     ValidationError,
 )
-from src.models.draft import ShortVideoProposal
 from src.models.hooks import HookItem
 
 
@@ -204,7 +203,7 @@ class TestChatGPTClientIntegration:
         proposals = client.extract_hooks(test_prompt)
 
         assert len(proposals) > 0
-        assert isinstance(proposals[0], ShortVideoProposal)
-        assert proposals[0].title
-        assert proposals[0].caption
-        assert len(proposals[0].key_points) > 0
+        assert isinstance(proposals[0], HookItem)
+        assert proposals[0].first_hook
+        assert proposals[0].summary
+        assert proposals[0].last_conclusion

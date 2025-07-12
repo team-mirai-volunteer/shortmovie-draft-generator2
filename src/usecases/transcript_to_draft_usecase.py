@@ -279,7 +279,7 @@ class TranscriptToDraftUsecase:
             video_name = transcript_name.replace("_transcript", "")
 
             # 1. フック抽出結果をJSONで保存
-            hooks_file_path = self._save_hooks_result(hooks_result, video_name, output_dir)
+            self._save_hooks_result(hooks_result, video_name, output_dir)
 
             # 2. 詳細台本をMarkdownで保存
             scripts_file_path = self._save_detailed_scripts(detailed_scripts, video_name, output_dir)
