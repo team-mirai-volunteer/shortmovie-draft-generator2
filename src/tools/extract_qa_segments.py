@@ -25,9 +25,9 @@ def load_transcription_file(file_path: str) -> dict[str, Any]:
         return data
 
     except FileNotFoundError:
-        raise FileNotFoundError(f"ファイルが見つかりません: {file_path}")
+        raise FileNotFoundError(f"ファイルが見つかりません: {file_path}") from None
     except json.JSONDecodeError as e:
-        raise ValueError(f"JSONファイルの解析に失敗しました: {e}")
+        raise ValueError(f"JSONファイルの解析に失敗しました: {e}") from e
 
 
 def save_qa_segments(qa_segments, output_path: str):

@@ -1,8 +1,8 @@
 """質問回答セグメント抽出ツール"""
 
 import re
-from typing import Any, Optional
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -12,7 +12,7 @@ class QuestionSegment:
     text: str
     start_time: float
     end_time: float
-    speaker: Optional[str] = None
+    speaker: str | None = None
 
 
 @dataclass
@@ -55,8 +55,6 @@ class QASegment:
 class QASegmenterError(Exception):
     """QASegmenter関連のベース例外"""
 
-    pass
-
 
 class QASegmenter:
     """質問回答セグメント抽出器
@@ -95,6 +93,7 @@ class QASegmenter:
 
         Raises:
             QASegmenterError: セグメント抽出に失敗した場合
+        
         """
         try:
             segments = transcription_data.get("segments", [])
@@ -124,8 +123,8 @@ class QASegmenter:
 
         except Exception as e:
             raise QASegmenterError(
-                f"Q&Aセグメント抽出中にエラーが発生しました: {str(e)}"
-            )
+                f"Q&Aセグメント抽出中にエラーが発生しました: {e!s}"
+            ) from e
 
     def _find_question_markers(
         self, segments: list[dict[str, Any]]
@@ -134,6 +133,7 @@ class QASegmenter:
 
         Returns:
             (セグメントインデックス, セグメントデータ, 質問者名) のタプルリスト
+        
         """
         question_markers = []
 
@@ -174,7 +174,7 @@ class QASegmenter:
         question_info: tuple[int, dict[str, Any], str],
         qa_id: int,
         all_selected_questions: list[tuple[int, dict[str, Any], str]],
-    ) -> Optional[QASegment]:
+    ) -> QASegment | None:
         """単一のQ&Aセグメントを抽出"""
         question_idx, question_segment, speaker = question_info
 
