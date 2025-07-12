@@ -16,9 +16,7 @@ class TestGoogleDriveBatchProcessUsecase:
         self.mock_transcript_to_draft_usecase = Mock()
         self.mock_google_drive_client = Mock()
         self.usecase = GoogleDriveBatchProcessUsecase(
-            self.mock_video_to_transcript_usecase,
-            self.mock_transcript_to_draft_usecase,
-            self.mock_google_drive_client
+            self.mock_video_to_transcript_usecase, self.mock_transcript_to_draft_usecase, self.mock_google_drive_client
         )
 
     def test_execute_drive_batch_success(self):
@@ -31,18 +29,11 @@ class TestGoogleDriveBatchProcessUsecase:
         self.mock_google_drive_client.download_file.return_value = "/tmp/test_video.mp4"
 
         # Phase 1: VideoToTranscriptUsecase の結果をモック
-        transcript_result = VideoToTranscriptResult(
-            success=True,
-            transcript_file_path="/tmp/test_video_transcript.json"
-        )
+        transcript_result = VideoToTranscriptResult(success=True, transcript_file_path="/tmp/test_video_transcript.json")
         self.mock_video_to_transcript_usecase.execute.return_value = transcript_result
 
         # Phase 2: TranscriptToDraftUsecase の結果をモック
-        draft_result = TranscriptToDraftResult(
-            success=True,
-            draft_file_path="/tmp/draft.md",
-            subtitle_file_path="/tmp/subtitle.srt"
-        )
+        draft_result = TranscriptToDraftResult(success=True, draft_file_path="/tmp/draft.md", subtitle_file_path="/tmp/subtitle.srt")
         self.mock_transcript_to_draft_usecase.execute.return_value = draft_result
 
         self.mock_google_drive_client.upload_file.side_effect = ["draft_url", "subtitle_url", "video_url", "transcript_url"]
