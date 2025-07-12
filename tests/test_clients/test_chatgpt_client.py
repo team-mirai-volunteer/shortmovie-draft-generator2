@@ -206,4 +206,3 @@ class TestChatGPTClientIntegration:
         assert isinstance(proposals[0], HookItem)
         assert proposals[0].first_hook
         assert proposals[0].summary
-        assert proposals[0].last_conclusion

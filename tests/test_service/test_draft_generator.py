@@ -86,7 +86,7 @@ class TestDraftGenerator:
 
         # フック抽出のモック
         sample_hook = HookItem(
-            first_hook="テストフック1", second_hook="テストフック2", third_hook="テストフック3", last_conclusion="テスト結論", summary="テスト要約"
+            first_hook="テストフック1", second_hook="テストフック2", third_hook="テストフック3", summary="テスト要約"
         )
 
         # 詳細台本のモック
@@ -126,7 +126,7 @@ class TestDraftGenerator:
         # 2段階処理のモック設定
 
         sample_hook = HookItem(
-            first_hook="テストフック1", second_hook="テストフック2", third_hook="テストフック3", last_conclusion="テスト結論", summary="テスト要約"
+            first_hook="テストフック1", second_hook="テストフック2", third_hook="テストフック3", summary="テスト要約"
         )
 
         sample_script = DetailedScript(
