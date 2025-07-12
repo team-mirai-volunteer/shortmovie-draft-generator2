@@ -62,6 +62,7 @@ module "cloud_run_job" {
   google_drive_source_folder_url      = var.google_drive_source_folder_url
   google_drive_destination_folder_url = var.google_drive_destination_folder_url
   slack_webhook_secret_id             = module.secret_manager.slack_webhook_secret_id
+  environment                         = local.environment
 
   depends_on = [module.artifact_registry, module.secret_manager]
 }

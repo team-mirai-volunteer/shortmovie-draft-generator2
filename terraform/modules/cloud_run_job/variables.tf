@@ -61,3 +61,8 @@ variable "slack_webhook_secret_id" {
   description = "Secret Manager secret ID for Slack webhook URL"
   type        = string
 }
+
+variable "environment" {
+  description = "Environment name (e.g., staging, production)"
+  type        = string
+}

@@ -75,6 +75,11 @@ resource "google_cloud_run_v2_job" "shortmovie_generator" {
           }
         }
 
+        env {
+          name  = "ENVIRONMENT"
+          value = var.environment
+        }
+
       }
 
       timeout         = "${var.timeout_seconds}s"
