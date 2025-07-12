@@ -86,8 +86,15 @@ Set the following in `.env` file:
 # Required
 OPENAI_API_KEY=
 
-# Optional
-GOOGLE_SERVICE_ACCOUNT_KEY_PATH=
+# Optional - Google Service Account Authentication (choose one):
+# Option 1: File path
+GOOGLE_SERVICE_ACCOUNT_KEY_PATH=path/to/service-account-key.json
+
+# Option 2: JSON string
+GOOGLE_SERVICE_ACCOUNT_KEY_JSON='{"type":"service_account","project_id":"..."}'
+
+# Option 3: Base64 encoded JSON (recommended for Cloud Run Jobs)
+GOOGLE_SERVICE_ACCOUNT_KEY_BASE64=eyJ0eXBlIjoic2VydmljZV9hY2NvdW50IiwicHJvamVjdF9pZCI6Li4ufQ==
 
 # Google Drive batch processing folders (both formats supported)
 # Format 1:

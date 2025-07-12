@@ -9,7 +9,7 @@ resource "google_cloud_scheduler_job" "shortmovie_generator_job" {
   http_target {
     http_method = "POST"
     uri         = "${var.cloud_run_url}/batch-process"
-    
+
     headers = {
       "Content-Type" = "application/json"
     }

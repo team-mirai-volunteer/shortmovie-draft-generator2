@@ -77,6 +77,7 @@ Each environment has its own:
 - API keys stored in Google Secret Manager
 - Service accounts follow least-privilege principle
 - Separate service accounts for Cloud Build and Cloud Run
+- OpenAI API Key and Slack Webhook URL are automatically created as secrets
 
 ## Important Configuration Variables
 
@@ -96,11 +97,11 @@ memory_limit = "2Gi"
 timeout_seconds = 3600
 schedule = "0 * * * *"  # Cron format
 
-# External Services
-openai_api_key = "sk-..."
+# External Services (stored in Secret Manager)
+openai_api_key = "sk-..."  # Will be stored in Secret Manager
 google_drive_source_folder_url = "https://drive.google.com/..."
 google_drive_destination_folder_url = "https://drive.google.com/..."
-slack_webhook_url = "https://hooks.slack.com/..."
+slack_webhook_url = "https://hooks.slack.com/..."  # Will be stored in Secret Manager
 ```
 
 ## Terraform Cloud Configuration
