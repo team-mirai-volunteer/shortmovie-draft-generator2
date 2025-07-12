@@ -441,6 +441,8 @@ class GoogleDriveClient:
 
     def _get_service_account_email(self) -> str:
         """サービスアカウントのメールアドレスを取得"""
+        if self.service_account_path is None:
+            return "unknown"
         try:
             with open(self.service_account_path) as f:
                 service_account_info = json.load(f)
