@@ -45,11 +45,7 @@ def setup_usecase() -> TranscriptToDraftUsecase:
     srt_generator = SrtGenerator()
 
     # TranscriptToDraftUsecaseの初期化
-    return TranscriptToDraftUsecase(
-        chatgpt_client=chatgpt_client,
-        prompt_builder=prompt_builder,
-        srt_generator=srt_generator
-    )
+    return TranscriptToDraftUsecase(chatgpt_client=chatgpt_client, prompt_builder=prompt_builder, srt_generator=srt_generator)
 
 
 @click.command()
