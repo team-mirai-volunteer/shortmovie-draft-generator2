@@ -290,7 +290,7 @@ def main(
     except Exception as e:
         click.echo(f"❌ 予期しないエラーが発生しました: {e!s}", err=True)
         if verbose:
-            import traceback  # noqa: PLC0415
+            import traceback
 
             click.echo("\nスタックトレース:", err=True)
             click.echo(traceback.format_exc(), err=True)
