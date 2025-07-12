@@ -19,6 +19,8 @@ resource "google_cloud_run_v2_job" "shortmovie_generator" {
   name     = var.service_name
   location = var.region
   project  = var.project_id
+  
+  deletion_protection = false
 
   template {
     template {
