@@ -75,7 +75,7 @@ module "cloud_scheduler_job" {
   region             = var.region
   service_name       = "${local.app_name}-${local.environment}"
   cloud_run_job_name = module.cloud_run_job.job_name
-  schedule           = "*/5 * * * *"  # 5分ごとに実行
+  schedule           = "*/5 * * * *" # 5分ごとに実行
   time_zone          = var.time_zone
 
   depends_on = [module.cloud_run_job]

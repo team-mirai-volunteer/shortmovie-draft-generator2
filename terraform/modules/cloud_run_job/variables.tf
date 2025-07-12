@@ -66,3 +66,9 @@ variable "environment" {
   description = "Environment name (e.g., staging, production)"
   type        = string
 }
+
+variable "slack_notifications_enabled" {
+  description = "Whether to enable Slack notifications"
+  type        = bool
+  default     = true
+}

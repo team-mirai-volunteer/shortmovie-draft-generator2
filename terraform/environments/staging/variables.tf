@@ -69,3 +69,9 @@ variable "slack_webhook_url" {
   type        = string
   sensitive   = true
 }
+
+variable "slack_notifications_enabled" {
+  description = "Whether to enable Slack notifications"
+  type        = bool
+  default     = true
+}
