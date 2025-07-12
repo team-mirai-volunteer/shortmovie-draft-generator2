@@ -1,20 +1,22 @@
 steps:
-  # Build Docker image
+  # Build the Docker image with BuildKit enabled
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-image'
+    env:
+      - 'DOCKER_BUILDKIT=1'
     args:
       - 'build'
+      - '--build-arg'
+      - 'BUILDKIT_INLINE_CACHE=1'
       - '-t'
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_IMAGE_NAME}:${SHORT_SHA}'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_IMAGE_NAME}:${_ENVIRONMENT}'
-      - '-t'
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_IMAGE_NAME}:latest'
-      - '--cache-from'
-      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_IMAGE_NAME}:latest'
+      - '-f'
+      - 'Dockerfile'
       - '.'
 
-  # Push Docker image to Artifact Registry
+  # Push the Docker image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-image'
     args:
@@ -22,7 +24,7 @@ steps:
       - '--all-tags'
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY_NAME}/${_IMAGE_NAME}'
 
-# Build configuration options
+# Build options
 options:
   logging: CLOUD_LOGGING_ONLY
   machineType: 'E2_HIGHCPU_8'
