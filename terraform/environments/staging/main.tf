@@ -1,5 +1,5 @@
 locals {
-  environment = "stg"
+  environment = "staging"
   app_name    = "sm-draft"
 }
 

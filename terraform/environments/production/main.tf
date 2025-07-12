@@ -1,5 +1,5 @@
 locals {
-  environment = "prd"
+  environment = "production"
   app_name    = "sm-draft"
 }
 
