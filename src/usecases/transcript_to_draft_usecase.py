@@ -59,12 +59,12 @@ class TranscriptToDraftUsecase:
 
     Example:
         >>> usecase = TranscriptToDraftUsecase(chatgpt_client, prompt_builder, srt_generator)
-        >>> result = usecase.execute("intermediate/video_transcript.json", "output/")
+        >>> result = usecase.execute("intermediate/文字起こし_video.json", "output/")
         >>> if result.success:
         ...     print(f"詳細台本: {result.draft_file_path}")
         ...     print(f"字幕: {result.subtitle_file_path}")
-        詳細台本: output/video_detailed_scripts.md
-        字幕: output/video_subtitle.srt
+        詳細台本: output/企画案_video.md
+        字幕: output/字幕_video.srt
 
     """
 
@@ -323,7 +323,7 @@ class TranscriptToDraftUsecase:
 
     def _save_detailed_scripts(self, detailed_scripts: list[DetailedScript], video_name: str, output_dir: str) -> str:
         """詳細台本をMarkdownファイルに保存"""
-        scripts_file_path = Path(output_dir) / f"{video_name}_detailed_scripts.md"
+        scripts_file_path = Path(output_dir) / f"企画案_{video_name}.md"
 
         content_lines = [
             "# 詳細台本集",
@@ -382,9 +382,9 @@ class TranscriptToDraftUsecase:
         try:
             # transcript.jsonのファイル名から元の動画名を推定
             transcript_name = Path(transcript_file_path).stem
-            video_name = transcript_name.replace("_transcript", "")
+            video_name = transcript_name.replace("文字起こし_", "")
 
-            subtitle_file_path = Path(output_dir) / f"{video_name}_subtitle.srt"
+            subtitle_file_path = Path(output_dir) / f"字幕_{video_name}.srt"
 
             # SrtGeneratorに処理を委譲
             return self.srt_generator.generate_srt_file(transcription, str(subtitle_file_path))
