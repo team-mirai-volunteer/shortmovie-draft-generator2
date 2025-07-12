@@ -1,4 +1,4 @@
-"""文字起こし→企画書ユースケース"""
+"""文字起こし→企画書ユースケース（2段階処理版）"""
 
 import json
 import os
@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from ..builders.prompt_builder import PromptBuilder
 from ..clients.chatgpt_client import ChatGPTClient
-from ..models.draft import DraftResult
+from ..models.hooks import DetailedScript, HooksExtractionResult
 from ..models.transcription import TranscriptionResult, TranscriptionSegment
 from ..models.usecase_results import TranscriptToDraftResult
 from ..service.srt_generator import SrtGenerator
@@ -34,12 +34,25 @@ class DraftGenerationError(TranscriptToDraftUsecaseError):
         self.transcript_file = transcript_file
 
 
+class HooksExtractionError(TranscriptToDraftUsecaseError):
+    """フック抽出エラー"""
+
+
+class ScriptGenerationError(TranscriptToDraftUsecaseError):
+    """台本生成エラー"""
+
+
+class ParallelProcessingError(TranscriptToDraftUsecaseError):
+    """並列処理エラー"""
+
+
 class TranscriptToDraftUsecase:
-    """文字起こしファイルから企画書と字幕ファイルを生成するユースケース
+    """文字起こしファイルから企画書と字幕ファイルを生成するユースケース（2段階処理版）
 
     責務:
     - transcript.jsonファイルの読み込み・検証
-    - ChatGPT APIによる企画書生成
+    - 2段階処理（フック抽出→詳細台本作成）の実行
+    - 並列処理による詳細台本生成
     - 企画書Markdownファイルの出力
     - SRT字幕ファイルの出力
     - エラーハンドリング
@@ -48,9 +61,9 @@ class TranscriptToDraftUsecase:
         >>> usecase = TranscriptToDraftUsecase(chatgpt_client, prompt_builder, srt_generator)
         >>> result = usecase.execute("intermediate/video_transcript.json", "output/")
         >>> if result.success:
-        ...     print(f"企画書: {result.draft_file_path}")
+        ...     print(f"詳細台本: {result.draft_file_path}")
         ...     print(f"字幕: {result.subtitle_file_path}")
-        企画書: output/video_draft.md
+        詳細台本: output/video_detailed_scripts.md
         字幕: output/video_subtitle.srt
 
     """
@@ -69,7 +82,7 @@ class TranscriptToDraftUsecase:
         self.srt_generator = srt_generator
 
     def execute(self, transcript_file_path: str, output_dir: str) -> TranscriptToDraftResult:
-        """transcript.jsonから企画書と字幕ファイルを生成
+        """2段階処理による企画書と字幕ファイルの生成
 
         Args:
             transcript_file_path: 文字起こしJSONファイルのパス
@@ -80,25 +93,19 @@ class TranscriptToDraftUsecase:
 
         """
         try:
-            # 1. 入力検証
+            # 1. 既存の前処理（入力検証、transcript読み込み）
             self._validate_input(transcript_file_path, output_dir)
-
-            # 2. 出力ディレクトリ準備
             self._prepare_output_directory(output_dir)
-
-            # 3. transcript.jsonの読み込み
             transcription = self._load_transcript(transcript_file_path)
 
-            # 4. 企画書生成
-            draft_result = self._generate_draft(transcription)
+            # 2. フェーズ1: フック抽出
+            hooks_result = self._extract_hooks_phase(transcription)
 
-            # 5. 企画書ファイル出力
-            draft_file_path = self._generate_draft_file(draft_result, transcript_file_path, output_dir)
+            # 3. フェーズ2: 詳細台本作成（並列）
+            detailed_scripts = self._generate_scripts_phase(hooks_result)
 
-            # 6. 字幕ファイル出力
-            subtitle_file_path = self._generate_subtitle_file(transcription, transcript_file_path, output_dir)
-
-            return TranscriptToDraftResult(success=True, draft_file_path=draft_file_path, subtitle_file_path=subtitle_file_path, transcription=transcription)
+            # 4. 結果統合・ファイル出力
+            return self._generate_output_files(hooks_result, detailed_scripts, transcript_file_path, output_dir)
 
         except Exception as e:
             return TranscriptToDraftResult(success=False, draft_file_path="", subtitle_file_path="", error_message=str(e))
@@ -199,59 +206,163 @@ class TranscriptToDraftUsecase:
         except Exception as e:
             raise DraftGenerationError(f"文字起こしデータの復元に失敗しました: {e!s}") from e
 
-    def _generate_draft(self, transcription: TranscriptionResult) -> DraftResult:
-        """文字起こし結果から企画書を生成
+    def _extract_hooks_phase(self, transcription: TranscriptionResult) -> HooksExtractionResult:
+        """フェーズ1: フック抽出
 
         Args:
             transcription: 文字起こし結果
 
         Returns:
-            企画書生成結果
+            フック抽出結果
 
         Raises:
-            DraftGenerationError: 企画書生成に失敗した場合
+            HooksExtractionError: フック抽出に失敗した場合
 
         """
         try:
-            prompt = self.prompt_builder.build_draft_prompt(transcription)
-            proposals = self.chatgpt_client.generate_draft(prompt)
-            return DraftResult(proposals=proposals, original_transcription=transcription)
+            # フック抽出用プロンプトを構築
+            hooks_prompt = self.prompt_builder.build_hooks_prompt(transcription)
+
+            # ChatGPT APIでフック抽出
+            hook_items = self.chatgpt_client.extract_hooks(hooks_prompt)
+
+            return HooksExtractionResult(items=hook_items, original_transcription=transcription)
 
         except Exception as e:
-            raise DraftGenerationError(f"企画書の生成に失敗しました: {e!s}") from e
+            raise HooksExtractionError(f"フック抽出に失敗しました: {e}") from e
 
-    def _generate_draft_file(self, draft_result: DraftResult, transcript_file_path: str, output_dir: str) -> str:
-        """企画書Markdownファイルを生成
+    def _generate_scripts_phase(self, hooks_result: HooksExtractionResult) -> list[DetailedScript]:
+        """フェーズ2: 詳細台本作成（並列）
 
         Args:
-            draft_result: 企画書生成結果
+            hooks_result: フック抽出結果
+
+        Returns:
+            詳細台本のリスト
+
+        Raises:
+            ScriptGenerationError: 台本生成に失敗した場合
+
+        """
+        try:
+            # 並列で詳細台本を生成
+            detailed_scripts = self.chatgpt_client.generate_detailed_scripts_parallel(
+                hooks_result.items, hooks_result.original_transcription.segments, self.prompt_builder
+            )
+
+            if not detailed_scripts:
+                raise ScriptGenerationError("全ての台本生成に失敗しました")
+
+            return detailed_scripts
+
+        except Exception as e:
+            raise ScriptGenerationError(f"詳細台本生成に失敗しました: {e}") from e
+
+    def _generate_output_files(
+        self, hooks_result: HooksExtractionResult, detailed_scripts: list[DetailedScript], transcript_file_path: str, output_dir: str
+    ) -> TranscriptToDraftResult:
+        """結果統合とファイル出力
+
+        Args:
+            hooks_result: フック抽出結果
+            detailed_scripts: 詳細台本のリスト
             transcript_file_path: 元の文字起こしファイルパス
             output_dir: 出力ディレクトリ
 
         Returns:
-            生成されたファイルのパス
-
-        Raises:
-            DraftGenerationError: ファイル生成に失敗した場合
+            処理結果
 
         """
         try:
-            # transcript.jsonのファイル名から元の動画名を推定
+            # ファイル名のベースを取得
             transcript_name = Path(transcript_file_path).stem
             video_name = transcript_name.replace("_transcript", "")
 
-            draft_file_path = Path(output_dir) / f"{video_name}_draft.md"
+            # 1. フック抽出結果をJSONで保存
+            self._save_hooks_result(hooks_result, video_name, output_dir)
 
-            # Markdownコンテンツを構築
-            markdown_content = self._build_markdown_content(draft_result, video_name)
+            # 2. 詳細台本をMarkdownで保存
+            scripts_file_path = self._save_detailed_scripts(detailed_scripts, video_name, output_dir)
 
-            with open(draft_file_path, "w", encoding="utf-8") as f:
-                f.write(markdown_content)
+            # 3. 字幕ファイル生成（既存処理）
+            subtitle_file_path = self._generate_subtitle_file(hooks_result.original_transcription, transcript_file_path, output_dir)
 
-            return str(draft_file_path)
+            return TranscriptToDraftResult(
+                success=True,
+                draft_file_path=scripts_file_path,
+                subtitle_file_path=subtitle_file_path,
+                transcription=hooks_result.original_transcription,
+            )
 
         except Exception as e:
-            raise DraftGenerationError(f"企画書ファイルの生成に失敗しました: {e!s}") from e
+            raise DraftGenerationError(f"出力ファイル生成に失敗しました: {e!s}") from e
+
+    def _save_hooks_result(self, hooks_result: HooksExtractionResult, video_name: str, output_dir: str) -> str:
+        """フック抽出結果をJSONファイルに保存"""
+        hooks_file_path = Path(output_dir) / f"{video_name}_hooks.json"
+
+        hooks_data = {
+            "extraction_timestamp": self._get_current_datetime(),
+            "original_video": video_name,
+            "items": [
+                {
+                    "first_hook": item.first_hook,
+                    "second_hook": item.second_hook,
+                    "third_hook": item.third_hook,
+                    "last_conclusion": item.last_conclusion,
+                    "summary": item.summary,
+                }
+                for item in hooks_result.items
+            ],
+        }
+
+        with open(hooks_file_path, "w", encoding="utf-8") as f:
+            json.dump(hooks_data, f, ensure_ascii=False, indent=2)
+
+        return str(hooks_file_path)
+
+    def _save_detailed_scripts(self, detailed_scripts: list[DetailedScript], video_name: str, output_dir: str) -> str:
+        """詳細台本をMarkdownファイルに保存"""
+        scripts_file_path = Path(output_dir) / f"{video_name}_detailed_scripts.md"
+
+        content_lines = [
+            "# 詳細台本集",
+            "",
+            f"**元動画**: {video_name}",
+            f"**生成日時**: {self._get_current_datetime()}",
+            f"**台本数**: {len(detailed_scripts)}",
+            "",
+            "---",
+            "",
+        ]
+
+        for i, script in enumerate(detailed_scripts, 1):
+            content_lines.extend(
+                [
+                    f"## フック{i}: {script.hook_item.summary}",
+                    "",
+                    f"**想定時間**: {script.duration_seconds}秒",
+                    "",
+                    "### フック詳細",
+                    f"- **First Hook**: {script.hook_item.first_hook}",
+                    f"- **Second Hook**: {script.hook_item.second_hook}",
+                    f"- **Third Hook**: {script.hook_item.third_hook}",
+                    f"- **Last Conclusion**: {script.hook_item.last_conclusion}",
+                    "",
+                    "### 台本内容",
+                    script.script_content,
+                    "",
+                    "---",
+                    "",
+                ]
+            )
+
+        content = "\n".join(content_lines)
+
+        with open(scripts_file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        return str(scripts_file_path)
 
     def _generate_subtitle_file(self, transcription: TranscriptionResult, transcript_file_path: str, output_dir: str) -> str:
         """SRT字幕ファイルを生成
@@ -280,81 +391,6 @@ class TranscriptToDraftUsecase:
 
         except Exception as e:
             raise DraftGenerationError(f"字幕ファイルの生成に失敗しました: {e!s}") from e
-
-    def _build_markdown_content(self, draft_result: DraftResult, video_name: str) -> str:
-        """企画書のMarkdown内容を構築
-
-        Args:
-            draft_result: 企画書生成結果
-            video_name: 動画名
-
-        Returns:
-            Markdown形式の企画書内容
-
-        """
-        content_lines = [
-            "# ショート動画企画書",
-            "",
-            f"**元動画**: {video_name}",
-            f"**生成日時**: {self._get_current_datetime()}",
-            f"**企画数**: {len(draft_result.proposals)}",
-            "",
-            "---",
-            "",
-        ]
-
-        for i, proposal in enumerate(draft_result.proposals, 1):
-            content_lines.extend(
-                [
-                    f"## 企画 {i}: {proposal.title}",
-                    "",
-                    f"**切り抜き時間**: {self._format_seconds_to_time(proposal.start_time)} - {self._format_seconds_to_time(proposal.end_time)}",
-                    f"**尺**: {proposal.end_time - proposal.start_time:.1f}秒",
-                    "",
-                    "**キャプション**:",
-                    f"{proposal.caption}",
-                    "",
-                    "**キーポイント**:",
-                ],
-            )
-
-            for point in proposal.key_points:
-                content_lines.append(f"- {point}")
-
-            content_lines.extend(
-                [
-                    "",
-                    "---",
-                    "",
-                ],
-            )
-
-        content_lines.extend(
-            [
-                "## 元の文字起こし",
-                "",
-                "```",
-                draft_result.original_transcription.full_text,
-                "```",
-            ],
-        )
-
-        return "\n".join(content_lines)
-
-    def _format_seconds_to_time(self, seconds: float) -> str:
-        """秒数をhh:mm:ss形式に変換
-
-        Args:
-            seconds: 変換する秒数
-
-        Returns:
-            hh:mm:ss形式の時刻文字列
-
-        """
-        hours = int(seconds // 3600)
-        minutes = int((seconds % 3600) // 60)
-        secs = int(seconds % 60)
-        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
     def _get_current_datetime(self) -> str:
         """現在の日時を文字列で取得

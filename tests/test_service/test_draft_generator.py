@@ -9,6 +9,7 @@ from src.builders.prompt_builder import PromptBuilder
 from src.clients.chatgpt_client import ChatGPTClient
 from src.clients.whisper_client import WhisperClient
 from src.models.draft import DraftResult, ShortVideoProposal
+from src.models.hooks import DetailedScript, HookItem
 from src.models.transcription import TranscriptionResult, TranscriptionSegment
 from src.service.draft_generator import (
     DraftGenerationError,
@@ -80,22 +81,36 @@ class TestDraftGenerator:
             self.generator.transcribe_video("test_video.mp4", "output/")
 
     def test_generate_draft_success(self):
-        """正常な企画書生成のテスト"""
-        self.mock_prompt_builder.build_draft_prompt.return_value = "test prompt"
-        self.mock_chatgpt_client.generate_draft.return_value = self.sample_proposals
+        """正常な企画書生成のテスト（2段階処理）"""
+        # 2段階処理のモック設定
+
+        # フック抽出のモック
+        sample_hook = HookItem(
+            first_hook="テストフック1", second_hook="テストフック2", third_hook="テストフック3", last_conclusion="テスト結論", summary="テスト要約"
+        )
+
+        # 詳細台本のモック
+        sample_script = DetailedScript(
+            hook_item=sample_hook, script_content="テスト台本内容", duration_seconds=60, segments_used=self.sample_transcription.segments
+        )
+
+        self.mock_prompt_builder.build_hooks_prompt.return_value = "hooks prompt"
+        self.mock_chatgpt_client.extract_hooks.return_value = [sample_hook]
+        self.mock_chatgpt_client.generate_detailed_scripts_parallel.return_value = [sample_script]
 
         result = self.generator.generate_draft(self.sample_transcription)
 
         assert isinstance(result, DraftResult)
-        assert result.proposals == self.sample_proposals
+        assert len(result.proposals) == 1
+        assert result.proposals[0].title == "テストフック1"
         assert result.original_transcription == self.sample_transcription
 
-        self.mock_prompt_builder.build_draft_prompt.assert_called_once_with(self.sample_transcription)
-        self.mock_chatgpt_client.generate_draft.assert_called_once_with("test prompt")
+        self.mock_prompt_builder.build_hooks_prompt.assert_called_once_with(self.sample_transcription)
+        self.mock_chatgpt_client.extract_hooks.assert_called_once_with("hooks prompt")
 
     def test_generate_draft_error(self):
         """企画書生成エラーのテスト"""
-        self.mock_prompt_builder.build_draft_prompt.side_effect = Exception("Prompt Error")
+        self.mock_prompt_builder.build_hooks_prompt.side_effect = Exception("Prompt Error")
 
         with pytest.raises(DraftGenerationError, match="企画書の生成に失敗しました"):
             self.generator.generate_draft(self.sample_transcription)
@@ -108,14 +123,26 @@ class TestDraftGenerator:
         mock_path.return_value.mkdir = Mock()
         mock_path.return_value.stem = "test_video"
 
+        # 2段階処理のモック設定
+
+        sample_hook = HookItem(
+            first_hook="テストフック1", second_hook="テストフック2", third_hook="テストフック3", last_conclusion="テスト結論", summary="テスト要約"
+        )
+
+        sample_script = DetailedScript(
+            hook_item=sample_hook, script_content="テスト台本内容", duration_seconds=60, segments_used=self.sample_transcription.segments
+        )
+
         self.mock_whisper_client.transcribe.return_value = self.sample_transcription
-        self.mock_prompt_builder.build_draft_prompt.return_value = "test prompt"
-        self.mock_chatgpt_client.generate_draft.return_value = self.sample_proposals
+        self.mock_prompt_builder.build_hooks_prompt.return_value = "test prompt"
+        self.mock_chatgpt_client.extract_hooks.return_value = [sample_hook]
+        self.mock_chatgpt_client.generate_detailed_scripts_parallel.return_value = [sample_script]
 
         result = self.generator.generate_from_video("test_video.mp4", "output/")
 
         assert isinstance(result, DraftResult)
-        assert result.proposals == self.sample_proposals
+        assert len(result.proposals) == 1
+        assert result.proposals[0].title == "テストフック1"
         assert result.original_transcription == self.sample_transcription
 
     @patch("os.path.exists")

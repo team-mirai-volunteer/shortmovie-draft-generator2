@@ -10,10 +10,11 @@ from dotenv import load_dotenv
 from src.builders.prompt_builder import PromptBuilder
 from src.clients.chatgpt_client import ChatGPTClient
 from src.clients.google_drive_client import GoogleDriveClient
+from src.clients.slack_client import SlackClient
 from src.clients.whisper_client import WhisperClient
+from src.models.result import GenerateResult
 from src.service.draft_generator import DraftGenerator
 from src.service.srt_generator import SrtGenerator
-from src.usecases.generate_short_draft_usecase import GenerateShortDraftUsecase
 from src.usecases.google_drive_batch_process_usecase import GoogleDriveBatchProcessUsecase
 from src.usecases.transcript_to_draft_usecase import TranscriptToDraftUsecase
 from src.usecases.video_to_transcript_usecase import VideoToTranscriptUsecase
@@ -43,6 +44,10 @@ class DIContainer:
         self.input_drive_folder = os.getenv("INPUT_DRIVE_FOLDER") or os.getenv("GOOGLE_DRIVE_SOURCE_FOLDER_URL")
         self.output_drive_folder = os.getenv("OUTPUT_DRIVE_FOLDER") or os.getenv("GOOGLE_DRIVE_DESTINATION_FOLDER_URL")
 
+        # Slack通知設定（オプショナル）
+        self.slack_webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+        self.slack_notifications_enabled = os.getenv("SLACK_NOTIFICATIONS_ENABLED", "false").lower() == "true"
+
         self.whisper_client = WhisperClient(api_key=self.openai_api_key, model=self.whisper_model)
 
         self.chatgpt_client = ChatGPTClient(api_key=self.openai_api_key, model=self.chatgpt_model)
@@ -64,6 +69,11 @@ class DIContainer:
 
         self.srt_generator = SrtGenerator()
 
+        # SlackClientの初期化（WebHook URLが設定されている場合のみ）
+        self.slack_client = None
+        if self.slack_webhook_url and self.slack_notifications_enabled:
+            self.slack_client = SlackClient(self.slack_webhook_url)
+
         # 新しいUsecaseの初期化
         self.video_to_transcript_usecase = VideoToTranscriptUsecase(whisper_client=self.whisper_client)
 
@@ -71,20 +81,12 @@ class DIContainer:
             chatgpt_client=self.chatgpt_client, prompt_builder=self.prompt_builder, srt_generator=self.srt_generator
         )
 
-        # 既存のGenerateShortDraftUsecaseは後方互換性のため維持
-        self.generate_usecase = GenerateShortDraftUsecase(
-            draft_generator=self.draft_generator,
-            srt_generator=self.srt_generator,
-            google_drive_client=self.google_drive_client,
-            upload_enabled=False,
-            upload_folder_id=self.google_drive_upload_folder_id,
-        )
-
-        # リファクタリング後のGoogleDriveBatchProcessUsecase
+        # リファクタリング後のGoogleDriveBatchProcessUsecase（Slack通知対応）
         self.google_drive_batch_usecase = GoogleDriveBatchProcessUsecase(
             video_to_transcript_usecase=self.video_to_transcript_usecase,
             transcript_to_draft_usecase=self.transcript_to_draft_usecase,
             google_drive_client=self.google_drive_client,
+            slack_client=self.slack_client,  # 新規追加
         )
 
     def _get_required_env(self, key: str) -> str:
@@ -195,23 +197,8 @@ def main(
         container = DIContainer()
 
         if upload:
-            if not upload_folder_id and not container.generate_usecase.upload_folder_id:
-                click.echo(
-                    "❌ アップロードを有効にする場合は --upload-folder-id オプションまたは GOOGLE_DRIVE_UPLOAD_FOLDER_ID 環境変数を設定してください",
-                    err=True,
-                )
-                sys.exit(1)
-
-            if not container.generate_usecase.google_drive_client:
-                click.echo("❌ Google Driveアップロードを使用するには以下のいずれかの環境変数を設定してください:", err=True)
-                click.echo("  - GOOGLE_SERVICE_ACCOUNT_KEY_PATH (ファイルパス)", err=True)
-                click.echo("  - GOOGLE_SERVICE_ACCOUNT_KEY_JSON (JSON文字列)", err=True)
-                click.echo("  - GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 (base64エンコードされたJSON)", err=True)
-                sys.exit(1)
-
-            container.generate_usecase.upload_enabled = True
-            if upload_folder_id:
-                container.generate_usecase.upload_folder_id = upload_folder_id
+            click.echo("❌ --uploadオプションは現在サポートされていません。--drive-batchを使用してください。", err=True)
+            sys.exit(1)
 
         if verbose:
             click.echo("✓ 依存関係の初期化が完了しました")
@@ -244,12 +231,34 @@ def main(
             return
 
         if drive:
-            result = container.generate_usecase.execute_from_drive(input_source, str(output_dir))
+            # Google Drive処理は複雑なので、一旦エラーとして処理
+            click.echo("❌ --driveオプションは現在サポートされていません。--drive-batchを使用してください。", err=True)
+            sys.exit(1)
         else:
             if not Path(input_source).exists():
                 click.echo(f"❌ 動画ファイルが存在しません: {input_source}", err=True)
                 sys.exit(1)
-            result = container.generate_usecase.execute(input_source, str(output_dir))
+
+            # 新しい2段階処理を使用
+            if verbose:
+                click.echo("📋 文字起こしを開始します...")
+
+            transcript_result = container.video_to_transcript_usecase.execute(input_source, "intermediate")
+            if not transcript_result.success:
+                click.echo(f"❌ 文字起こし処理中にエラーが発生しました: {transcript_result.error_message}", err=True)
+                sys.exit(1)
+
+            if verbose:
+                click.echo(f"✓ 文字起こし完了: {transcript_result.transcript_file_path}")
+                click.echo("📝 企画書生成を開始します...")
+
+            draft_result = container.transcript_to_draft_usecase.execute(transcript_result.transcript_file_path, str(output_dir))
+            if not draft_result.success:
+                click.echo(f"❌ 企画書生成処理中にエラーが発生しました: {draft_result.error_message}", err=True)
+                sys.exit(1)
+
+            # GenerateResultと同じ形式で結果を作成
+            result = GenerateResult(draft_file_path=draft_result.draft_file_path, subtitle_file_path=draft_result.subtitle_file_path, success=True)
 
         if result.success:
             click.echo("🎉 処理が正常に完了しました！")

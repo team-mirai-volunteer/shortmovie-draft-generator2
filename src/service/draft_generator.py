@@ -7,7 +7,7 @@ from pathlib import Path
 from ..builders.prompt_builder import PromptBuilder
 from ..clients.chatgpt_client import ChatGPTClient
 from ..clients.whisper_client import WhisperClient
-from ..models.draft import DraftResult
+from ..models.draft import DraftResult, ShortVideoProposal
 from ..models.transcription import TranscriptionResult, TranscriptionSegment
 
 
@@ -102,9 +102,30 @@ class DraftGenerator:
 
         """
         try:
-            prompt = self.prompt_builder.build_draft_prompt(transcription)
+            # 2段階処理を使用
+            # 1. フック抽出
+            hooks_prompt = self.prompt_builder.build_hooks_prompt(transcription)
+            hook_items = self.chatgpt_client.extract_hooks(hooks_prompt)
 
-            proposals = self.chatgpt_client.generate_draft(prompt)
+            # 2. 詳細台本生成（並列処理）
+            detailed_scripts = self.chatgpt_client.generate_detailed_scripts_parallel(hook_items, transcription.segments, self.prompt_builder)
+
+            # 従来のDraftResult形式に変換（後方互換性のため）
+            proposals = []
+            for script in detailed_scripts:
+                # DetailedScriptをShortVideoProposalに変換
+                # セグメントから開始・終了時刻を推定（最初と最後のセグメント）
+                start_time = script.segments_used[0].start_time if script.segments_used else 0.0
+                end_time = script.segments_used[-1].end_time if script.segments_used else script.duration_seconds
+
+                proposal = ShortVideoProposal(
+                    title=script.hook_item.first_hook,
+                    start_time=start_time,
+                    end_time=end_time,
+                    caption=script.hook_item.summary,
+                    key_points=[script.hook_item.first_hook, script.hook_item.second_hook, script.hook_item.third_hook, script.hook_item.last_conclusion],
+                )
+                proposals.append(proposal)
 
             return DraftResult(proposals=proposals, original_transcription=transcription)
 

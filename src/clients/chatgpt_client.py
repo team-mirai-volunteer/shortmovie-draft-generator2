@@ -1,12 +1,18 @@
 """ChatGPT APIクライアントモジュール"""
 
 import json
+import re
 import time
-from typing import Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..builders.prompt_builder import PromptBuilder
 
 from openai import OpenAI
 
-from ..models.draft import ShortVideoProposal
+from ..models.hooks import DetailedScript, HookItem
+from ..models.transcription import TranscriptionSegment
 
 
 class ChatGPTClientError(Exception):
@@ -44,9 +50,10 @@ class ValidationError(ChatGPTClientError):
 
 
 class ChatGPTClient:
-    """ChatGPT APIクライアント
+    """ChatGPT APIクライアント（2段階処理対応版）
 
     プロンプトからショート動画企画書をJSON形式で生成します。
+    2段階処理（フック抽出→詳細台本作成）に対応し、並列処理も可能です。
     レート制限やエラーハンドリングに対応し、構造化されたレスポンスを返します。
 
     Example:
@@ -74,29 +81,6 @@ class ChatGPTClient:
         self.api_key = api_key
         self.model = model
         self.client = OpenAI(api_key=api_key)
-
-    def generate_draft(self, prompt: str) -> list[ShortVideoProposal]:
-        """企画書生成用プロンプトからJSON形式の企画書を生成
-
-        Args:
-            prompt: ChatGPTに送信するプロンプト
-
-        Returns:
-            生成されたショート動画企画のリスト
-
-        Raises:
-            ChatGPTAPIError: API呼び出しに失敗した場合
-            JSONParseError: レスポンスのJSON解析に失敗した場合
-            ValidationError: レスポンス内容が期待する形式でない場合
-
-        """
-        self._validate_prompt(prompt)
-
-        raw_response = self._call_chatgpt_api(prompt)
-        json_data = self._parse_json_response(raw_response)
-        self._validate_response_structure(json_data)
-
-        return self._convert_to_proposals(json_data)
 
     def _validate_prompt(self, prompt: str) -> None:
         """プロンプトの妥当性チェック
@@ -187,74 +171,6 @@ class ChatGPTClient:
         except json.JSONDecodeError as e:
             raise JSONParseError(f"JSONの解析に失敗しました: {e!s}", raw_response) from e
 
-    def _validate_response_structure(self, data: dict[str, Any]) -> None:
-        """レスポンスJSONの構造検証
-
-        Args:
-            data: 検証するJSONデータ
-
-        Raises:
-            ValidationError: レスポンス構造が期待する形式でない場合
-
-        """
-        if "items" not in data:
-            raise ValidationError("レスポンスに'items'フィールドがありません")
-
-        if not isinstance(data["items"], list):
-            raise ValidationError("'items'フィールドがリスト形式ではありません")
-
-        if len(data["items"]) == 0:
-            raise ValidationError("'items'が空です")
-
-        required_fields = [
-            "first_impact",
-            "last_conclusion",
-            "summary",
-            "time_start",
-            "time_end",
-            "title",
-            "caption",
-            "key_points",
-        ]
-
-        for i, item in enumerate(data["items"]):
-            for field in required_fields:
-                if field not in item:
-                    raise ValidationError(
-                        f"アイテム{i}に必須フィールド'{field}'がありません",
-                        field_name=field,
-                    )
-
-            if not isinstance(item["key_points"], list):
-                raise ValidationError(f"アイテム{i}の'key_points'がリスト形式ではありません")
-
-    def _convert_to_proposals(self, data: dict[str, Any]) -> list[ShortVideoProposal]:
-        """JSONデータをShortVideoProposalオブジェクトのリストに変換
-
-        Args:
-            data: 変換するJSONデータ
-
-        Returns:
-            ShortVideoProposalオブジェクトのリスト
-
-        """
-        proposals = []
-
-        for item in data["items"]:
-            start_time = self._parse_time_to_seconds(item["time_start"])
-            end_time = self._parse_time_to_seconds(item["time_end"])
-
-            proposal = ShortVideoProposal(
-                title=item["title"],
-                start_time=start_time,
-                end_time=end_time,
-                caption=item["caption"],
-                key_points=item["key_points"],
-            )
-            proposals.append(proposal)
-
-        return proposals
-
     def _parse_time_to_seconds(self, time_str: str) -> float:
         """hh:mm:ss形式の時刻文字列を秒数に変換
 
@@ -281,3 +197,157 @@ class ChatGPTClient:
 
         except (ValueError, IndexError) as e:
             raise ValueError(f"時刻の解析に失敗しました: {time_str} - {e!s}") from e
+
+    def extract_hooks(self, prompt: str) -> list[HookItem]:
+        """フック抽出API呼び出し
+
+        Args:
+            prompt: フック抽出用プロンプト
+
+        Returns:
+            10個のHookItemのリスト
+
+        Raises:
+            ChatGPTAPIError: API呼び出しに失敗した場合
+            JSONParseError: レスポンスのJSON解析に失敗した場合
+            ValidationError: レスポンス内容が期待する形式でない場合
+
+        """
+        self._validate_prompt(prompt)
+
+        raw_response = self._call_chatgpt_api(prompt)
+        json_data = self._parse_json_response(raw_response)
+        self._validate_hooks_response_structure(json_data)
+
+        return self._convert_to_hook_items(json_data)
+
+    def generate_detailed_script(self, prompt: str, hook_item: HookItem) -> DetailedScript:
+        """詳細台本生成API呼び出し
+
+        Args:
+            prompt: 詳細台本生成用プロンプト
+            hook_item: 対応するフックアイテム
+
+        Returns:
+            単一の詳細台本
+
+        Note:
+            詳細台本生成は台本形式のテキストを出力するため、
+            JSONパースは行わずに生テキストとして処理する
+
+        """
+        self._validate_prompt(prompt)
+
+        raw_response = self._call_chatgpt_api(prompt)
+
+        # 台本は構造化されたJSONではなく、台本形式のテキストとして返される
+        # 例: 【台本構成】[00:00–00:06] ナレーション＋テロップ...
+        duration = self._extract_duration_from_script(raw_response)
+
+        return DetailedScript(
+            hook_item=hook_item,
+            script_content=raw_response,
+            duration_seconds=duration,
+            segments_used=[],  # 後で設定
+        )
+
+    def generate_detailed_scripts_parallel(
+        self, hook_items: list[HookItem], segments: list[TranscriptionSegment], prompt_builder: "PromptBuilder"
+    ) -> list[DetailedScript]:
+        """10個のフックに対して並列で詳細台本を生成
+
+        Args:
+            hook_items: フックアイテムのリスト
+            segments: 文字起こしセグメント
+            prompt_builder: プロンプトビルダー
+
+        Returns:
+            詳細台本のリスト
+
+        """
+        detailed_scripts = []
+
+        # 並列処理（最大5並列）
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            # 各フックに対してタスクを投入
+            future_to_hook = {}
+            for hook_item in hook_items:
+                prompt = prompt_builder.build_script_prompt(hook_item, segments)
+                future = executor.submit(self.generate_detailed_script, prompt, hook_item)
+                future_to_hook[future] = hook_item
+
+            # 結果を収集
+            for future in as_completed(future_to_hook):
+                hook_item = future_to_hook[future]
+                try:
+                    script = future.result()
+                    # セグメント情報を設定
+                    script.segments_used = segments  # 全セグメントを設定
+                    detailed_scripts.append(script)
+                except Exception as e:
+                    # 個別の失敗は警告として記録し、処理を継続
+                    print(f"フック '{hook_item.summary}' の台本生成に失敗: {e}")
+
+        return detailed_scripts
+
+    def _extract_duration_from_script(self, script_content: str) -> int:
+        """台本内容から想定時間を抽出
+
+        Args:
+            script_content: 台本テキスト
+
+        Returns:
+            想定時間（秒）、抽出できない場合は60秒
+
+        """
+        # [00:54–01:00] のような時間表記を探す
+        time_pattern = r"\[(\d{2}):(\d{2})–(\d{2}):(\d{2})\]"
+        matches = re.findall(time_pattern, script_content)
+
+        if matches:
+            # 最後の時間表記を取得
+            last_match = matches[-1]
+            end_minutes = int(last_match[2])
+            end_seconds = int(last_match[3])
+            total_seconds = end_minutes * 60 + end_seconds
+            return total_seconds
+
+        # デフォルトは60秒
+        return 60
+
+    def _validate_hooks_response_structure(self, data: dict[str, Any]) -> None:
+        """フック抽出レスポンスJSONの構造検証"""
+        if "items" not in data:
+            raise ValidationError("レスポンスに'items'フィールドがありません")
+
+        if not isinstance(data["items"], list):
+            raise ValidationError("'items'フィールドがリスト形式ではありません")
+
+        if len(data["items"]) == 0:
+            raise ValidationError("'items'が空です")
+
+        required_fields = ["first_hook", "second_hook", "third_hook", "last_conclusion", "summary"]
+
+        for i, item in enumerate(data["items"]):
+            for field in required_fields:
+                if field not in item:
+                    raise ValidationError(
+                        f"アイテム{i}に必須フィールド'{field}'がありません",
+                        field_name=field,
+                    )
+
+    def _convert_to_hook_items(self, data: dict[str, Any]) -> list[HookItem]:
+        """JSONデータをHookItemオブジェクトのリストに変換"""
+        hook_items = []
+
+        for item in data["items"]:
+            hook_item = HookItem(
+                first_hook=item["first_hook"],
+                second_hook=item["second_hook"],
+                third_hook=item["third_hook"],
+                last_conclusion=item["last_conclusion"],
+                summary=item["summary"],
+            )
+            hook_items.append(hook_item)
+
+        return hook_items
