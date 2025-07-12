@@ -29,7 +29,7 @@ resource "google_cloud_scheduler_job" "shortmovie_generator_job" {
 }
 
 resource "google_service_account" "scheduler_sa" {
-  account_id   = "${var.service_name}-scheduler-sa"
+  account_id   = "${var.service_name}-sched-sa"
   display_name = "Service Account for Cloud Scheduler"
   project      = var.project_id
 }
