@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 from ..clients.google_drive_client import GoogleDriveClient, GoogleDriveError
+from ..clients.slack_client import SlackClient
 from ..models.drive import DriveFile
 from ..models.result import GoogleDriveBatchResult
 from .transcript_to_draft_usecase import TranscriptToDraftUsecase
@@ -25,10 +26,12 @@ class GoogleDriveBatchProcessUsecase:
         video_to_transcript_usecase: VideoToTranscriptUsecase,
         transcript_to_draft_usecase: TranscriptToDraftUsecase,
         google_drive_client: GoogleDriveClient,
+        slack_client: SlackClient | None = None,
     ):
         self.video_to_transcript_usecase = video_to_transcript_usecase
         self.transcript_to_draft_usecase = transcript_to_draft_usecase
         self.google_drive_client = google_drive_client
+        self.slack_client = slack_client
 
     def execute_drive_batch(self, input_folder_url: str, output_folder_url: str) -> GoogleDriveBatchResult:
         """Google Drive間でのバッチ処理実行（リファクタリング版）
@@ -48,7 +51,10 @@ class GoogleDriveBatchProcessUsecase:
             if not unprocessed_video:
                 return GoogleDriveBatchResult.no_unprocessed_videos()
 
-            # 2. 出力フォルダの準備（既存ロジック維持）
+            # 2. 動画処理開始通知
+            self._send_processing_start_notification(unprocessed_video, input_folder_url)
+
+            # 3. 出力フォルダの準備（既存ロジック維持）
             video_name = Path(unprocessed_video.name).stem
             output_folder_id = self.google_drive_client.extract_folder_id(output_folder_url)
             output_subfolder_id = self._prepare_output_subfolder(output_folder_id, video_name)
@@ -61,13 +67,17 @@ class GoogleDriveBatchProcessUsecase:
                 transcript_result = self.video_to_transcript_usecase.execute(video_path, temp_dir)
 
                 if not transcript_result.success:
-                    return GoogleDriveBatchResult.from_error(transcript_result.error_message or "文字起こし処理に失敗しました")
+                    error_msg = transcript_result.error_message or "文字起こし処理に失敗しました"
+                    self._send_processing_failure_notification(unprocessed_video.name, error_msg)
+                    return GoogleDriveBatchResult.from_error(error_msg)
 
                 # 5. Phase 2: 文字起こし→企画書
                 draft_result = self.transcript_to_draft_usecase.execute(transcript_result.transcript_file_path, temp_dir)
 
                 if not draft_result.success:
-                    return GoogleDriveBatchResult.from_error(draft_result.error_message or "企画書生成処理に失敗しました")
+                    error_msg = draft_result.error_message or "企画書生成処理に失敗しました"
+                    self._send_processing_failure_notification(unprocessed_video.name, error_msg)
+                    return GoogleDriveBatchResult.from_error(error_msg)
 
                 # 6. 結果ファイルのアップロード
                 draft_url = self.google_drive_client.upload_file(draft_result.draft_file_path, output_subfolder_id)
@@ -76,6 +86,12 @@ class GoogleDriveBatchProcessUsecase:
 
                 # 7. 中間ファイル（transcript.json）もアップロード（デバッグ用）
                 transcript_url = self.google_drive_client.upload_file(transcript_result.transcript_file_path, output_subfolder_id)
+
+                # 8. 出力サブフォルダのURLを生成
+                output_subfolder_url = f"https://drive.google.com/drive/folders/{output_subfolder_id}"
+
+                # 9. 処理完了通知
+                self._send_processing_success_notification(unprocessed_video.name, output_subfolder_url)
 
                 return GoogleDriveBatchResult(
                     success=True,
@@ -89,7 +105,11 @@ class GoogleDriveBatchProcessUsecase:
                 )
 
         except Exception as e:
-            return GoogleDriveBatchResult.from_error(str(e))
+            error_msg = str(e)
+            # 動画名が取得できている場合は失敗通知を送信
+            if "unprocessed_video" in locals() and unprocessed_video:
+                self._send_processing_failure_notification(unprocessed_video.name, error_msg)
+            return GoogleDriveBatchResult.from_error(error_msg)
 
     def _prepare_output_subfolder(self, output_folder_id: str, video_name: str) -> str:
         """出力サブフォルダの準備（既存ロジックを分離）
@@ -148,3 +168,39 @@ class GoogleDriveBatchProcessUsecase:
         video_mime_types = {"video/mp4", "video/avi", "video/quicktime", "video/x-msvideo", "video/x-ms-wmv", "video/x-flv", "video/webm"}
 
         return any(file.name.lower().endswith(ext) for ext in video_extensions) or file.mime_type in video_mime_types
+
+    def _send_processing_start_notification(self, video_file: DriveFile, input_folder_url: str) -> None:
+        """動画処理開始通知を送信"""
+        if not self.slack_client:
+            return
+
+        try:
+            message = f"🎬 動画処理を開始しました\n📁 ファイル名: {video_file.name}\n🔗 入力フォルダ: {input_folder_url}"
+            self.slack_client.send_message(message)
+        except Exception as e:
+            # 通知の失敗は処理を止めない
+            print(f"Slack通知の送信に失敗しました: {e}")
+
+    def _send_processing_success_notification(self, video_name: str, output_subfolder_url: str) -> None:
+        """動画処理完了通知を送信"""
+        if not self.slack_client:
+            return
+
+        try:
+            message = f"✅ 台本生成が完了しました\n📁 動画ファイル名: {video_name}\n🔗 出力フォルダ: {output_subfolder_url}"
+            self.slack_client.send_message(message)
+        except Exception as e:
+            # 通知の失敗は処理を止めない
+            print(f"Slack通知の送信に失敗しました: {e}")
+
+    def _send_processing_failure_notification(self, video_name: str, error_message: str) -> None:
+        """動画処理失敗通知を送信"""
+        if not self.slack_client:
+            return
+
+        try:
+            message = f"❌ 台本生成に失敗しました\n📁 動画ファイル名: {video_name}\n💥 エラー理由: {error_message}"
+            self.slack_client.send_message(message)
+        except Exception as e:
+            # 通知の失敗は処理を止めない
+            print(f"Slack通知の送信に失敗しました: {e}")
