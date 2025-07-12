@@ -7,7 +7,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from ..clients.whisper_client import WhisperClient
-from ..models.transcription import TranscriptionResult, TranscriptionSegment
+from ..models.transcription import TranscriptionResult
 from ..models.usecase_results import VideoToTranscriptResult
 
 
@@ -46,6 +46,7 @@ class VideoToTranscriptUsecase:
         >>> if result.success:
         ...     print(f"文字起こし完了: {result.transcript_file_path}")
         文字起こし完了: intermediate/video_transcript.json
+
     """
 
     def __init__(self, whisper_client: WhisperClient):
@@ -53,6 +54,7 @@ class VideoToTranscriptUsecase:
 
         Args:
             whisper_client: Whisper APIクライアント
+
         """
         self.whisper_client = whisper_client
 
@@ -65,6 +67,7 @@ class VideoToTranscriptUsecase:
 
         Returns:
             処理結果（VideoToTranscriptResult）
+
         """
         try:
             # 1. 入力検証
@@ -79,18 +82,10 @@ class VideoToTranscriptUsecase:
             # 4. 中間ファイルに保存
             transcript_file_path = self._save_transcript(transcription, video_path, intermediate_dir)
 
-            return VideoToTranscriptResult(
-                success=True,
-                transcript_file_path=transcript_file_path,
-                transcription=transcription
-            )
+            return VideoToTranscriptResult(success=True, transcript_file_path=transcript_file_path, transcription=transcription)
 
         except Exception as e:
-            return VideoToTranscriptResult(
-                success=False,
-                transcript_file_path="",
-                error_message=str(e)
-            )
+            return VideoToTranscriptResult(success=False, transcript_file_path="", error_message=str(e))
 
     def _validate_input(self, video_path: str, intermediate_dir: str) -> None:
         """入力パラメータの検証
@@ -101,6 +96,7 @@ class VideoToTranscriptUsecase:
 
         Raises:
             VideoInputValidationError: 入力が無効な場合
+
         """
         if not video_path or not video_path.strip():
             raise VideoInputValidationError("動画ファイルパスが指定されていません", "video_path")
@@ -118,10 +114,7 @@ class VideoToTranscriptUsecase:
         allowed_extensions = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}
         file_extension = Path(video_path).suffix.lower()
         if file_extension not in allowed_extensions:
-            raise VideoInputValidationError(
-                f"サポートされていないファイル形式です: {file_extension}",
-                "video_path"
-            )
+            raise VideoInputValidationError(f"サポートされていないファイル形式です: {file_extension}", "video_path")
 
     def _prepare_intermediate_directory(self, intermediate_dir: str) -> None:
         """中間ファイル保存ディレクトリの準備
@@ -131,6 +124,7 @@ class VideoToTranscriptUsecase:
 
         Raises:
             TranscriptionProcessError: ディレクトリ作成に失敗した場合
+
         """
         try:
             intermediate_path = Path(intermediate_dir)
@@ -155,6 +149,7 @@ class VideoToTranscriptUsecase:
 
         Raises:
             TranscriptionProcessError: ファイル保存に失敗した場合
+
         """
         try:
             intermediate_path = Path(intermediate_dir)
@@ -181,6 +176,7 @@ class VideoToTranscriptUsecase:
 
         Returns:
             シリアライズされた辞書
+
         """
         return {
             "video_name": Path(video_path).name,

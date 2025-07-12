@@ -27,7 +27,6 @@ class DIContainer:
 
     def __init__(self) -> None:
         """各サービスを初期化（環境変数は事前に読み込み済み）"""
-
         # 既存の設定
         self.openai_api_key = self._get_required_env("OPENAI_API_KEY")
         self.chatgpt_model = os.getenv("CHATGPT_MODEL", "gpt-4o")
@@ -60,14 +59,10 @@ class DIContainer:
         self.srt_generator = SrtGenerator()
 
         # 新しいUsecaseの初期化
-        self.video_to_transcript_usecase = VideoToTranscriptUsecase(
-            whisper_client=self.whisper_client
-        )
+        self.video_to_transcript_usecase = VideoToTranscriptUsecase(whisper_client=self.whisper_client)
 
         self.transcript_to_draft_usecase = TranscriptToDraftUsecase(
-            chatgpt_client=self.chatgpt_client,
-            prompt_builder=self.prompt_builder,
-            srt_generator=self.srt_generator
+            chatgpt_client=self.chatgpt_client, prompt_builder=self.prompt_builder, srt_generator=self.srt_generator
         )
 
         # 既存のGenerateShortDraftUsecaseは後方互換性のため維持

@@ -52,20 +52,17 @@ class TranscriptToDraftUsecase:
         ...     print(f"字幕: {result.subtitle_file_path}")
         企画書: output/video_draft.md
         字幕: output/video_subtitle.srt
+
     """
 
-    def __init__(
-        self,
-        chatgpt_client: ChatGPTClient,
-        prompt_builder: PromptBuilder,
-        srt_generator: SrtGenerator
-    ):
+    def __init__(self, chatgpt_client: ChatGPTClient, prompt_builder: PromptBuilder, srt_generator: SrtGenerator):
         """TranscriptToDraftUsecaseを初期化
 
         Args:
             chatgpt_client: ChatGPT APIクライアント
             prompt_builder: プロンプト生成器
             srt_generator: SRT字幕ファイル生成器
+
         """
         self.chatgpt_client = chatgpt_client
         self.prompt_builder = prompt_builder
@@ -80,6 +77,7 @@ class TranscriptToDraftUsecase:
 
         Returns:
             処理結果（TranscriptToDraftResult）
+
         """
         try:
             # 1. 入力検証
@@ -100,20 +98,10 @@ class TranscriptToDraftUsecase:
             # 6. 字幕ファイル出力
             subtitle_file_path = self._generate_subtitle_file(transcription, transcript_file_path, output_dir)
 
-            return TranscriptToDraftResult(
-                success=True,
-                draft_file_path=draft_file_path,
-                subtitle_file_path=subtitle_file_path,
-                transcription=transcription
-            )
+            return TranscriptToDraftResult(success=True, draft_file_path=draft_file_path, subtitle_file_path=subtitle_file_path, transcription=transcription)
 
         except Exception as e:
-            return TranscriptToDraftResult(
-                success=False,
-                draft_file_path="",
-                subtitle_file_path="",
-                error_message=str(e)
-            )
+            return TranscriptToDraftResult(success=False, draft_file_path="", subtitle_file_path="", error_message=str(e))
 
     def _validate_input(self, transcript_file_path: str, output_dir: str) -> None:
         """入力パラメータの検証
@@ -124,6 +112,7 @@ class TranscriptToDraftUsecase:
 
         Raises:
             TranscriptInputValidationError: 入力が無効な場合
+
         """
         if not transcript_file_path or not transcript_file_path.strip():
             raise TranscriptInputValidationError("文字起こしファイルパスが指定されていません", "transcript_file_path")
@@ -145,6 +134,7 @@ class TranscriptToDraftUsecase:
 
         Raises:
             DraftGenerationError: ディレクトリ作成に失敗した場合
+
         """
         try:
             output_path = Path(output_dir)
@@ -167,6 +157,7 @@ class TranscriptToDraftUsecase:
 
         Raises:
             DraftGenerationError: ファイル読み込みに失敗した場合
+
         """
         try:
             with open(transcript_file_path, encoding="utf-8") as f:
@@ -176,10 +167,7 @@ class TranscriptToDraftUsecase:
             return self._deserialize_transcription(data)
 
         except Exception as e:
-            raise DraftGenerationError(
-                f"文字起こしファイルの読み込みに失敗しました: {e!s}",
-                transcript_file_path
-            ) from e
+            raise DraftGenerationError(f"文字起こしファイルの読み込みに失敗しました: {e!s}", transcript_file_path) from e
 
     def _deserialize_transcription(self, data: dict) -> TranscriptionResult:
         """辞書からTranscriptionResultオブジェクトを復元
@@ -192,6 +180,7 @@ class TranscriptToDraftUsecase:
 
         Raises:
             DraftGenerationError: データ形式が無効な場合
+
         """
         try:
             segments = [
@@ -221,6 +210,7 @@ class TranscriptToDraftUsecase:
 
         Raises:
             DraftGenerationError: 企画書生成に失敗した場合
+
         """
         try:
             prompt = self.prompt_builder.build_draft_prompt(transcription)
@@ -243,6 +233,7 @@ class TranscriptToDraftUsecase:
 
         Raises:
             DraftGenerationError: ファイル生成に失敗した場合
+
         """
         try:
             # transcript.jsonのファイル名から元の動画名を推定
@@ -275,6 +266,7 @@ class TranscriptToDraftUsecase:
 
         Raises:
             DraftGenerationError: ファイル生成に失敗した場合
+
         """
         try:
             # transcript.jsonのファイル名から元の動画名を推定
@@ -298,6 +290,7 @@ class TranscriptToDraftUsecase:
 
         Returns:
             Markdown形式の企画書内容
+
         """
         content_lines = [
             "# ショート動画企画書",
@@ -356,6 +349,7 @@ class TranscriptToDraftUsecase:
 
         Returns:
             hh:mm:ss形式の時刻文字列
+
         """
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
@@ -367,5 +361,6 @@ class TranscriptToDraftUsecase:
 
         Returns:
             現在の日時文字列
+
         """
         return datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S")

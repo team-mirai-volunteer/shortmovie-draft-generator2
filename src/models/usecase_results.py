@@ -16,13 +16,10 @@ class VideoToTranscriptResult:
         error_message: エラーメッセージ（失敗時のみ）
 
     Example:
-        >>> result = VideoToTranscriptResult(
-        ...     success=True,
-        ...     transcript_file_path="intermediate/video1_transcript.json",
-        ...     transcription=transcription_obj
-        ... )
+        >>> result = VideoToTranscriptResult(success=True, transcript_file_path="intermediate/video1_transcript.json", transcription=transcription_obj)
         >>> print(f"成功: {result.success}")
         成功: True
+
     """
 
     success: bool
@@ -44,13 +41,11 @@ class TranscriptToDraftResult:
 
     Example:
         >>> result = TranscriptToDraftResult(
-        ...     success=True,
-        ...     draft_file_path="output/video1_draft.md",
-        ...     subtitle_file_path="output/video1_subtitle.srt",
-        ...     transcription=transcription_obj
+        ...     success=True, draft_file_path="output/video1_draft.md", subtitle_file_path="output/video1_subtitle.srt", transcription=transcription_obj
         ... )
         >>> print(f"企画書: {result.draft_file_path}")
         企画書: output/video1_draft.md
+
     """
 
     success: bool

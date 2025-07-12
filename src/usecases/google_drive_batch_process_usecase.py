@@ -24,7 +24,7 @@ class GoogleDriveBatchProcessUsecase:
         self,
         video_to_transcript_usecase: VideoToTranscriptUsecase,
         transcript_to_draft_usecase: TranscriptToDraftUsecase,
-        google_drive_client: GoogleDriveClient
+        google_drive_client: GoogleDriveClient,
     ):
         self.video_to_transcript_usecase = video_to_transcript_usecase
         self.transcript_to_draft_usecase = transcript_to_draft_usecase
@@ -39,6 +39,7 @@ class GoogleDriveBatchProcessUsecase:
 
         Returns:
             処理結果（GoogleDriveBatchResult）
+
         """
         try:
             # 1. 未処理動画の検出（既存ロジック維持）
@@ -60,20 +61,13 @@ class GoogleDriveBatchProcessUsecase:
                 transcript_result = self.video_to_transcript_usecase.execute(video_path, temp_dir)
 
                 if not transcript_result.success:
-                    return GoogleDriveBatchResult.from_error(
-                        transcript_result.error_message or "文字起こし処理に失敗しました"
-                    )
+                    return GoogleDriveBatchResult.from_error(transcript_result.error_message or "文字起こし処理に失敗しました")
 
                 # 5. Phase 2: 文字起こし→企画書
-                draft_result = self.transcript_to_draft_usecase.execute(
-                    transcript_result.transcript_file_path,
-                    temp_dir
-                )
+                draft_result = self.transcript_to_draft_usecase.execute(transcript_result.transcript_file_path, temp_dir)
 
                 if not draft_result.success:
-                    return GoogleDriveBatchResult.from_error(
-                        draft_result.error_message or "企画書生成処理に失敗しました"
-                    )
+                    return GoogleDriveBatchResult.from_error(draft_result.error_message or "企画書生成処理に失敗しました")
 
                 # 6. 結果ファイルのアップロード
                 draft_url = self.google_drive_client.upload_file(draft_result.draft_file_path, output_subfolder_id)
@@ -106,6 +100,7 @@ class GoogleDriveBatchProcessUsecase:
 
         Returns:
             出力サブフォルダID
+
         """
         if not self.google_drive_client.folder_exists(output_folder_id, video_name):
             return self.google_drive_client.create_folder(video_name, output_folder_id)
