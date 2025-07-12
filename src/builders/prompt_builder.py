@@ -1,6 +1,5 @@
 """ChatGPT用プロンプト生成モジュール"""
 
-from typing import List
 from ..models.transcription import TranscriptionResult, TranscriptionSegment
 
 
@@ -18,6 +17,7 @@ class PromptBuilder:
         >>> prompt = builder.build_draft_prompt(transcription)
         >>> print(len(prompt) > 0)
         True
+
     """
 
     DRAFT_PROMPT_TEMPLATE = """# 依頼内容
@@ -77,7 +77,7 @@ class PromptBuilder:
 * 終盤は視聴時間への寄与は少ないものの、最後に**共感や感動、オチ**などがあればユーザーの満足度が上がると考えられています。
 
 JSON形式以外の出力は一切含めず、上記形式で正確に回答してください。
-"""
+"""  # noqa: E501
 
     def build_draft_prompt(self, transcription: TranscriptionResult) -> str:
         """文字起こし結果からショート動画企画書生成用プロンプトを構築
@@ -90,6 +90,7 @@ JSON形式以外の出力は一切含めず、上記形式で正確に回答し�
 
         Raises:
             ValueError: transcriptionが無効な場合
+
         """
         self._validate_transcription(transcription)
 
@@ -107,13 +108,14 @@ JSON形式以外の出力は一切含めず、上記形式で正確に回答し�
 
         Returns:
             hh:mm:ss形式の時刻文字列
+
         """
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
         secs = int(seconds % 60)
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
-    def _format_segments(self, segments: List[TranscriptionSegment]) -> str:
+    def _format_segments(self, segments: list[TranscriptionSegment]) -> str:
         """セグメント情報を読みやすい形式にフォーマット
 
         Args:
@@ -121,6 +123,7 @@ JSON形式以外の出力は一切含めず、上記形式で正確に回答し�
 
         Returns:
             フォーマットされたセグメント文字列
+
         """
         formatted_lines = []
         for i, segment in enumerate(segments, 1):
@@ -140,6 +143,7 @@ JSON形式以外の出力は一切含めず、上記形式で正確に回答し�
 
         Raises:
             ValueError: transcriptionが無効な場合
+
         """
         if not transcription.segments:
             raise ValueError("セグメントが空です")

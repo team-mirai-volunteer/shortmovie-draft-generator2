@@ -1,10 +1,11 @@
 """Slack WebHook APIクライアントモジュール"""
 
-import json
-import time
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
 import datetime
+import time
+from dataclasses import dataclass
+from typing import Any
+from zoneinfo import ZoneInfo
+
 import requests
 
 
@@ -14,16 +15,14 @@ class ProcessResult:
 
     success: bool
     process_name: str
-    file_name: Optional[str] = None
-    processing_time: Optional[float] = None
-    error_message: Optional[str] = None
-    timestamp: Optional[str] = None
+    file_name: str | None = None
+    processing_time: float | None = None
+    error_message: str | None = None
+    timestamp: str | None = None
 
 
 class SlackClientError(Exception):
     """SlackClient関連のベース例外"""
-
-    pass
 
 
 class SlackWebHookError(SlackClientError):
@@ -32,8 +31,8 @@ class SlackWebHookError(SlackClientError):
     def __init__(
         self,
         message: str,
-        status_code: Optional[int] = None,
-        retry_after: Optional[int] = None,
+        status_code: int | None = None,
+        retry_after: int | None = None,
     ):
         super().__init__(message)
         self.status_code = status_code
@@ -43,7 +42,7 @@ class SlackWebHookError(SlackClientError):
 class MessageValidationError(SlackClientError):
     """メッセージ内容検証エラー"""
 
-    def __init__(self, message: str, field_name: Optional[str] = None):
+    def __init__(self, message: str, field_name: str | None = None):
         super().__init__(message)
         self.field_name = field_name
 
@@ -56,13 +55,9 @@ class SlackClient:
 
     Example:
         >>> client = SlackClient("https://hooks.slack.com/services/...")
-        >>> result = ProcessResult(
-        ...     success=True,
-        ...     process_name="ショート動画企画書生成",
-        ...     file_name="input.mp4",
-        ...     processing_time=45.2
-        ... )
+        >>> result = ProcessResult(success=True, process_name="ショート動画企画書生成", file_name="input.mp4", processing_time=45.2)
         >>> client.send_process_notification(result)
+
     """
 
     def __init__(self, webhook_url: str, timeout: int = 30) -> None:
@@ -74,6 +69,7 @@ class SlackClient:
 
         Raises:
             ValueError: WebHook URLが無効な場合
+
         """
         # WebHook URLの妥当性チェック
         if not webhook_url or not webhook_url.strip():
@@ -94,12 +90,13 @@ class SlackClient:
         Raises:
             SlackWebHookError: WebHook API呼び出しに失敗した場合
             MessageValidationError: メッセージ内容が無効な場合
+
         """
         self._validate_process_result(result)
 
         # タイムスタンプが指定されていない場合は現在時刻を使用
         if not result.timestamp:
-            result.timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            result.timestamp = datetime.datetime.now(tz=ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S")
 
         payload = self._build_process_notification_message(result)
         self._call_webhook_api(payload)
@@ -113,6 +110,7 @@ class SlackClient:
         Raises:
             SlackWebHookError: WebHook API呼び出しに失敗した場合
             MessageValidationError: メッセージ内容が無効な場合
+
         """
         self._validate_message(message)
 
@@ -120,7 +118,7 @@ class SlackClient:
 
         self._call_webhook_api(payload)
 
-    def _build_process_notification_message(self, result: ProcessResult) -> Dict[str, Any]:
+    def _build_process_notification_message(self, result: ProcessResult) -> dict[str, Any]:
         """処理完了通知メッセージを構築
 
         Args:
@@ -128,6 +126,7 @@ class SlackClient:
 
         Returns:
             Slack WebHook API用のペイロード
+
         """
         # 成功/失敗に応じたアイコンと色
         if result.success:
@@ -162,7 +161,7 @@ class SlackClient:
 
         return payload
 
-    def _call_webhook_api(self, payload: Dict[str, Any], max_retries: int = 3) -> None:
+    def _call_webhook_api(self, payload: dict[str, Any], max_retries: int = 3) -> None:
         """リトライ機能付きWebHook API呼び出し
 
         Args:
@@ -171,6 +170,7 @@ class SlackClient:
 
         Raises:
             SlackWebHookError: WebHook API呼び出しに失敗した場合
+
         """
         last_exception = None
 
@@ -198,7 +198,7 @@ class SlackClient:
                     time.sleep(2**attempt)  # 指数バックオフ
                     continue
 
-        raise SlackWebHookError(f"Slack WebHook API呼び出しが{max_retries}回失敗しました: {str(last_exception)}")
+        raise SlackWebHookError(f"Slack WebHook API呼び出しが{max_retries}回失敗しました: {last_exception!s}")
 
     def _validate_message(self, message: str) -> None:
         """メッセージの妥当性チェック
@@ -208,6 +208,7 @@ class SlackClient:
 
         Raises:
             MessageValidationError: メッセージ内容が無効な場合
+
         """
         if not message or not message.strip():
             raise MessageValidationError("メッセージが空です")
@@ -224,6 +225,7 @@ class SlackClient:
 
         Raises:
             MessageValidationError: 処理結果情報が無効な場合
+
         """
         if not result.process_name or not result.process_name.strip():
             raise MessageValidationError("プロセス名が指定されていません", "process_name")

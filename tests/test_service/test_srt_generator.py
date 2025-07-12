@@ -1,11 +1,12 @@
 """SrtGeneratorのテスト"""
 
 import os  # noqa: F401
-import pytest
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
-from src.service.srt_generator import SrtGenerator, SrtGenerationError
+import pytest
+
 from src.models.transcription import TranscriptionResult, TranscriptionSegment
+from src.service.srt_generator import SrtGenerationError, SrtGenerator
 
 
 class TestSrtGenerator:
@@ -87,7 +88,7 @@ class TestSrtGenerator:
     @patch("builtins.open")
     def test_generate_srt_file_error(self, mock_open):
         """ファイル生成エラーのテスト"""
-        mock_open.side_effect = IOError("テストエラー")
+        mock_open.side_effect = OSError("テストエラー")
 
         with pytest.raises(SrtGenerationError) as excinfo:
             self.generator.generate_srt_file(self.sample_transcription, "output/subtitle.srt")

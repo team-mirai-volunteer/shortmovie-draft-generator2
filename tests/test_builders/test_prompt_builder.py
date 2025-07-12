@@ -1,6 +1,7 @@
 """prompt_builder.pyのテスト"""
 
 import pytest
+
 from src.builders.prompt_builder import PromptBuilder
 from src.models.transcription import TranscriptionResult, TranscriptionSegment
 
@@ -165,7 +166,7 @@ class TestSampleData:
 
     def test_short_video_sample_data(self):
         """ショート動画向けサンプルデータでのテスト"""
-        SHORT_VIDEO_SEGMENTS = [
+        short_video_segments = [
             TranscriptionSegment(0.0, 5.0, "皆さん、これ知ってました？実は..."),
             TranscriptionSegment(5.0, 15.0, "今日お話しするのは、誰も教えてくれない秘密の方法です"),
             TranscriptionSegment(15.0, 30.0, "まず最初のポイントは、タイミングが全てということ"),
@@ -173,13 +174,15 @@ class TestSampleData:
             TranscriptionSegment(45.0, 60.0, "最後に、これを実践すれば必ず結果が出ます"),
         ]
 
-        SHORT_VIDEO_TRANSCRIPTION = TranscriptionResult(
-            segments=SHORT_VIDEO_SEGMENTS,
-            full_text=("皆さん、これ知ってました？実は...今日お話しするのは、誰も教えてくれない秘密の方法です。" "まず最初のポイントは、タイミングが全てということ。次に重要なのは、相手の心理を理解すること。" "最後に、これを実践すれば必ず結果が出ます。"),
+        short_video_transcription = TranscriptionResult(
+            segments=short_video_segments,
+            full_text=(
+                "皆さん、これ知ってました？実は...今日お話しするのは、誰も教えてくれない秘密の方法です。まず最初のポイントは、タイミングが全てということ。次に重要なのは、相手の心理を理解すること。最後に、これを実践すれば必ず結果が出ます。"
+            ),
         )
 
         builder = PromptBuilder()
-        prompt = builder.build_draft_prompt(SHORT_VIDEO_TRANSCRIPTION)
+        prompt = builder.build_draft_prompt(short_video_transcription)
 
         assert isinstance(prompt, str)
         assert len(prompt) > 0

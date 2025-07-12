@@ -13,7 +13,7 @@
 ## 技術要件
 
 - Python 3.8.1+
-- Poetry（パッケージ管理）
+- uv（パッケージ管理）
 - mypy（型チェック）
 - 依存性注入（DI）パターンの採用
 - Google Drive API v3（サービスアカウント認証）
@@ -21,7 +21,7 @@
 ## インストール
 
 ```bash
-poetry install
+uv sync
 ```
 
 ## 環境設定
@@ -127,7 +127,7 @@ sudo apt install ffmpeg
 環境変数で設定したフォルダから 1 つの動画を処理：
 
 ```bash
-poetry run python src/main.py --drive-batch
+uv run python src/main.py --drive-batch
 ```
 
 #### 処理の流れ
@@ -157,19 +157,19 @@ OUTPUT_DRIVE_FOLDER/
 ### ローカルファイルでの処理
 
 ```bash
-poetry run python src/main.py input/video.mp4 output/
+uv run python src/main.py input/video.mp4 output/
 ```
 
 ### Google Drive フォルダから単発処理
 
 ```bash
-poetry run python src/main.py "https://drive.google.com/drive/folders/abc123" output/ --drive
+uv run python src/main.py "https://drive.google.com/drive/folders/abc123" output/ --drive
 ```
 
 ### Google Drive アップロード付きローカル処理
 
 ```bash
-poetry run python src/main.py input/video.mp4 output/ --upload --upload-folder-id "folder_id"
+uv run python src/main.py input/video.mp4 output/ --upload --upload-folder-id "folder_id"
 ```
 
 ## 開発
@@ -177,23 +177,24 @@ poetry run python src/main.py input/video.mp4 output/ --upload --upload-folder-i
 ### テスト実行
 
 ```bash
-poetry run pytest
+uv run pytest
 ```
 
 ### 型チェック
 
 ```bash
-poetry run mypy src/
+uv run mypy src/
 ```
 
-### コードフォーマット
+### コードフォーマット・リンター
 
 ```bash
-poetry run black src/ tests/
-```
+# フォーマットチェック
+uv run ruff check src/ tests/
 
-### リンター
+# 自動修正
+uv run ruff check --fix src/ tests/
 
-```bash
-poetry run flake8 src/ tests/
+# コードフォーマット
+uv run ruff format src/ tests/
 ```

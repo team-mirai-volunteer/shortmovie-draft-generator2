@@ -2,7 +2,6 @@
 
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 from ..clients.google_drive_client import GoogleDriveClient, GoogleDriveError
 from ..models.drive import DriveFile
@@ -30,6 +29,7 @@ class GoogleDriveBatchProcessUsecase:
 
         Returns:
             処理結果（GoogleDriveBatchResult）
+
         """
         try:
             unprocessed_video = self._find_unprocessed_video_from_drive(input_folder_url, output_folder_url)
@@ -72,7 +72,7 @@ class GoogleDriveBatchProcessUsecase:
         except Exception as e:
             return GoogleDriveBatchResult.from_error(str(e))
 
-    def _find_unprocessed_video_from_drive(self, input_folder_url: str, output_folder_url: str) -> Optional[DriveFile]:
+    def _find_unprocessed_video_from_drive(self, input_folder_url: str, output_folder_url: str) -> DriveFile | None:
         """Google Driveフォルダから未処理動画を1本検出
 
         既存の_find_unprocessed_videoロジックをGoogle Drive対応に拡張
@@ -103,7 +103,7 @@ class GoogleDriveBatchProcessUsecase:
             return None
 
         except Exception as e:
-            raise GoogleDriveError(f"未処理動画の検出に失敗しました: {str(e)}")
+            raise GoogleDriveError(f"未処理動画の検出に失敗しました: {e!s}") from e
 
     def _is_video_file(self, file: DriveFile) -> bool:
         """ファイルが動画ファイルかどうかを判定"""

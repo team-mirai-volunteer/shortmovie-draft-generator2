@@ -1,27 +1,26 @@
 """ショート動画企画書生成ユースケース"""
 
 import os
+from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from zoneinfo import ZoneInfo
 
-from ..models.result import GenerateResult
+from ..clients.google_drive_client import FileUploadError, GoogleDriveClient
 from ..models.draft import DraftResult
+from ..models.result import GenerateResult
 from ..service.draft_generator import DraftGenerator
 from ..service.srt_generator import SrtGenerator
-from ..clients.google_drive_client import GoogleDriveClient, FileUploadError
 from ..sources.google_drive_video_source import GoogleDriveVideoSource
 
 
 class GenerateShortDraftUsecaseError(Exception):
     """GenerateShortDraftUsecase関連のベース例外"""
 
-    pass
-
 
 class InputValidationError(GenerateShortDraftUsecaseError):
     """入力検証エラー"""
 
-    def __init__(self, message: str, field_name: Optional[str] = None):
+    def __init__(self, message: str, field_name: str | None = None):
         super().__init__(message)
         self.field_name = field_name
 
@@ -29,7 +28,7 @@ class InputValidationError(GenerateShortDraftUsecaseError):
 class OutputGenerationError(GenerateShortDraftUsecaseError):
     """出力ファイル生成エラー"""
 
-    def __init__(self, message: str, file_path: Optional[str] = None):
+    def __init__(self, message: str, file_path: str | None = None):
         super().__init__(message)
         self.file_path = file_path
 
@@ -48,6 +47,7 @@ class GenerateShortDraftUsecase:
         ...     print(f"字幕: {result.subtitle_file_path}")
         企画書: output/video_draft.md
         字幕: output/video_subtitle.srt
+
     """
 
     def __init__(
@@ -56,7 +56,7 @@ class GenerateShortDraftUsecase:
         srt_generator: SrtGenerator,
         google_drive_client: GoogleDriveClient,
         upload_enabled: bool = False,
-        upload_folder_id: Optional[str] = None,
+        upload_folder_id: str | None = None,
     ):
         """GenerateShortDraftUsecaseを初期化
 
@@ -66,6 +66,7 @@ class GenerateShortDraftUsecase:
             google_drive_client: Google Driveクライアント（DIContainerから注入）
             upload_enabled: Google Driveアップロードを有効にするかどうか
             upload_folder_id: アップロード先のGoogle DriveフォルダID
+
         """
         self.draft_generator = draft_generator
         self.srt_generator = srt_generator
@@ -82,6 +83,7 @@ class GenerateShortDraftUsecase:
 
         Returns:
             処理結果（GenerateResult）
+
         """
         try:
             self._validate_inputs(video_path, output_dir)
@@ -133,6 +135,7 @@ class GenerateShortDraftUsecase:
 
         Raises:
             InputValidationError: 入力が無効な場合
+
         """
         if not video_path or not video_path.strip():
             raise InputValidationError("動画ファイルパスが指定されていません", "video_path")
@@ -159,6 +162,7 @@ class GenerateShortDraftUsecase:
 
         Raises:
             OutputGenerationError: ディレクトリ作成に失敗した場合
+
         """
         try:
             output_path = Path(output_dir)
@@ -168,7 +172,7 @@ class GenerateShortDraftUsecase:
                 raise OutputGenerationError(f"出力ディレクトリの作成に失敗しました: {output_dir}", output_dir)
 
         except Exception as e:
-            raise OutputGenerationError(f"出力ディレクトリの準備に失敗しました: {str(e)}", output_dir)
+            raise OutputGenerationError(f"出力ディレクトリの準備に失敗しました: {e!s}", output_dir) from e
 
     def _generate_draft_file(self, draft_result: DraftResult, video_path: str, output_dir: str) -> str:
         """企画書Markdownファイルを生成
@@ -183,6 +187,7 @@ class GenerateShortDraftUsecase:
 
         Raises:
             OutputGenerationError: ファイル生成に失敗した場合
+
         """
         draft_file_path = None
         try:
@@ -198,9 +203,9 @@ class GenerateShortDraftUsecase:
 
         except Exception as e:
             raise OutputGenerationError(
-                f"企画書ファイルの生成に失敗しました: {str(e)}",
+                f"企画書ファイルの生成に失敗しました: {e!s}",
                 str(draft_file_path) if draft_file_path else None,
-            )
+            ) from e
 
     def _generate_subtitle_file_delegated(self, draft_result: DraftResult, video_path: str, output_dir: str) -> str:
         """SRT字幕ファイルの生成をSrtGeneratorに委譲
@@ -215,6 +220,7 @@ class GenerateShortDraftUsecase:
 
         Raises:
             OutputGenerationError: ファイル生成に失敗した場合
+
         """
         subtitle_file_path = None
         try:
@@ -226,9 +232,9 @@ class GenerateShortDraftUsecase:
 
         except Exception as e:
             raise OutputGenerationError(
-                f"字幕ファイルの生成に失敗しました: {str(e)}",
+                f"字幕ファイルの生成に失敗しました: {e!s}",
                 str(subtitle_file_path) if subtitle_file_path else None,
-            )
+            ) from e
 
     def _build_markdown_content(self, draft_result: DraftResult, video_path: str) -> str:
         """企画書のMarkdown内容を構築
@@ -239,6 +245,7 @@ class GenerateShortDraftUsecase:
 
         Returns:
             Markdown形式の企画書内容
+
         """
         video_name = Path(video_path).name
         content_lines = [
@@ -257,14 +264,14 @@ class GenerateShortDraftUsecase:
                 [
                     f"## 企画 {i}: {proposal.title}",
                     "",
-                    f"**切り抜き時間**: {self._format_seconds_to_time(proposal.start_time)} - " f"{self._format_seconds_to_time(proposal.end_time)}",
+                    f"**切り抜き時間**: {self._format_seconds_to_time(proposal.start_time)} - {self._format_seconds_to_time(proposal.end_time)}",
                     f"**尺**: {proposal.end_time - proposal.start_time:.1f}秒",
                     "",
                     "**キャプション**:",
                     f"{proposal.caption}",
                     "",
                     "**キーポイント**:",
-                ]
+                ],
             )
 
             for point in proposal.key_points:
@@ -275,7 +282,7 @@ class GenerateShortDraftUsecase:
                     "",
                     "---",
                     "",
-                ]
+                ],
             )
 
         content_lines.extend(
@@ -285,7 +292,7 @@ class GenerateShortDraftUsecase:
                 "```",
                 draft_result.original_transcription.full_text,
                 "```",
-            ]
+            ],
         )
 
         return "\n".join(content_lines)
@@ -298,6 +305,7 @@ class GenerateShortDraftUsecase:
 
         Returns:
             hh:mm:ss形式の時刻文字列
+
         """
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
@@ -309,10 +317,9 @@ class GenerateShortDraftUsecase:
 
         Returns:
             現在の日時文字列
-        """
-        from datetime import datetime
 
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        """
+        return datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S")
 
     def execute_from_drive(self, drive_folder_url: str, output_dir: str) -> GenerateResult:
         """Google Driveフォルダから企画書とSRTファイルを生成
@@ -323,6 +330,7 @@ class GenerateShortDraftUsecase:
 
         Returns:
             処理結果（GenerateResult）
+
         """
         try:
             self._validate_drive_inputs(drive_folder_url, output_dir)
@@ -380,6 +388,7 @@ class GenerateShortDraftUsecase:
 
         Raises:
             InputValidationError: 入力が無効な場合
+
         """
         if not drive_folder_url or not drive_folder_url.strip():
             raise InputValidationError("Google DriveフォルダURLが指定されていません", "drive_folder_url")

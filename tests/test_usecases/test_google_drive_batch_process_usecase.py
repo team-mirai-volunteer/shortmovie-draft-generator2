@@ -2,9 +2,9 @@
 
 from unittest.mock import Mock, patch
 
-from src.usecases.google_drive_batch_process_usecase import GoogleDriveBatchProcessUsecase
 from src.models.drive import DriveFile, DriveFolder
 from src.models.result import GenerateResult
+from src.usecases.google_drive_batch_process_usecase import GoogleDriveBatchProcessUsecase
 
 
 class TestGoogleDriveBatchProcessUsecase:
@@ -19,7 +19,7 @@ class TestGoogleDriveBatchProcessUsecase:
     def test_execute_drive_batch_success(self):
         """正常なバッチ処理のテスト"""
         video_file = DriveFile(name="test_video.mp4", file_id="file123", download_url="url", mime_type="video/mp4", size=1024)
-        self.usecase._find_unprocessed_video_from_drive = Mock(return_value=video_file)
+        self.usecase._find_unprocessed_video_from_drive = Mock(return_value=video_file)  # type: ignore[method-assign]
         self.mock_google_drive_client.extract_folder_id.return_value = "output_folder_id"
         self.mock_google_drive_client.folder_exists.return_value = False
         self.mock_google_drive_client.create_folder.return_value = "subfolder_id"
@@ -42,7 +42,7 @@ class TestGoogleDriveBatchProcessUsecase:
 
     def test_execute_drive_batch_no_unprocessed_videos(self):
         """未処理動画がない場合のテスト"""
-        self.usecase._find_unprocessed_video_from_drive = Mock(return_value=None)
+        self.usecase._find_unprocessed_video_from_drive = Mock(return_value=None)  # type: ignore[method-assign]
 
         result = self.usecase.execute_drive_batch("input_url", "output_url")
 

@@ -1,5 +1,7 @@
 """result.pyのテスト"""
 
+import pytest
+
 from src.models.result import GenerateResult
 
 
@@ -202,68 +204,39 @@ class TestSampleData:
             assert error_result.error_message is not None
             assert error_result.error_message != ""
 
-    def test_realistic_usage_patterns(self):
+    @pytest.mark.parametrize(
+        "draft_file_path,subtitle_file_path,success,error_message",
+        [
+            # 成功パターン
+            ("output/2025-01-10_draft.md", "output/2025-01-10_subtitle.srt", True, None),
+            ("/tmp/shortmovie/draft_001.md", "/tmp/shortmovie/subtitle_001.srt", True, None),
+            ("C:\\Users\\user\\Documents\\output\\draft.md", "C:\\Users\\user\\Documents\\output\\subtitle.srt", True, None),
+            # 失敗パターン
+            ("", "", False, "OpenAI APIキーが設定されていません"),
+            ("", "", False, "入力動画ファイルが見つかりません"),
+            ("", "", False, "ネットワークエラーが発生しました"),
+            ("", "", False, "出力ディレクトリへの書き込み権限がありません"),
+        ],
+    )
+    def test_realistic_usage_patterns(self, draft_file_path: str, subtitle_file_path: str, success: bool, error_message: str | None):
         """実際の使用パターンに近いテスト"""
-        # 様々な成功パターン
-        success_cases = [
-            {
-                "draft_file_path": "output/2025-01-10_draft.md",
-                "subtitle_file_path": "output/2025-01-10_subtitle.srt",
-                "success": True,
-                "error_message": None,
-            },
-            {
-                "draft_file_path": "/tmp/shortmovie/draft_001.md",
-                "subtitle_file_path": "/tmp/shortmovie/subtitle_001.srt",
-                "success": True,
-                "error_message": None,
-            },
-            {
-                "draft_file_path": "C:\\Users\\user\\Documents\\output\\draft.md",
-                "subtitle_file_path": "C:\\Users\\user\\Documents\\output\\subtitle.srt",
-                "success": True,
-                "error_message": None,
-            },
-        ]
+        result = GenerateResult(
+            draft_file_path=draft_file_path,
+            subtitle_file_path=subtitle_file_path,
+            success=success,
+            error_message=error_message,
+        )
 
-        for case in success_cases:
-            result = GenerateResult(**case)
-            assert result.success is True
+        assert result.success == success
+        assert result.error_message == error_message
+        assert result.draft_file_path == draft_file_path
+        assert result.subtitle_file_path == subtitle_file_path
+
+        if success:
             assert result.error_message is None
             assert result.draft_file_path != ""
             assert result.subtitle_file_path != ""
-
-        # 様々な失敗パターン
-        failure_cases = [
-            {
-                "draft_file_path": "",
-                "subtitle_file_path": "",
-                "success": False,
-                "error_message": "OpenAI APIキーが設定されていません",
-            },
-            {
-                "draft_file_path": "",
-                "subtitle_file_path": "",
-                "success": False,
-                "error_message": "入力動画ファイルが見つかりません",
-            },
-            {
-                "draft_file_path": "",
-                "subtitle_file_path": "",
-                "success": False,
-                "error_message": "ネットワークエラーが発生しました",
-            },
-            {
-                "draft_file_path": "",
-                "subtitle_file_path": "",
-                "success": False,
-                "error_message": "出力ディレクトリへの書き込み権限がありません",
-            },
-        ]
-
-        for case in failure_cases:
-            result = GenerateResult(**case)
-            assert result.success is False
+        else:
             assert result.error_message is not None
             assert result.error_message != ""
             assert result.draft_file_path == ""
@@ -282,6 +255,7 @@ class TestSampleData:
         assert partial_result.draft_file_path == "output/draft.md"
         assert partial_result.subtitle_file_path == ""
         assert partial_result.success is False
+        assert partial_result.error_message is not None
         assert "字幕ファイル" in partial_result.error_message
 
         # 字幕ファイルは生成されたが企画書の生成に失敗した場合
@@ -295,4 +269,5 @@ class TestSampleData:
         assert another_partial_result.draft_file_path == ""
         assert another_partial_result.subtitle_file_path == "output/subtitle.srt"
         assert another_partial_result.success is False
+        assert another_partial_result.error_message is not None
         assert "企画書" in another_partial_result.error_message

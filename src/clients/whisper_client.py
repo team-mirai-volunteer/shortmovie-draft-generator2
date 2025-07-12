@@ -3,23 +3,22 @@
 import os
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any
+
 import ffmpeg
 from openai import OpenAI
 
-from ..models.transcription import TranscriptionSegment, TranscriptionResult
+from ..models.transcription import TranscriptionResult, TranscriptionSegment
 
 
 class WhisperClientError(Exception):
     """WhisperClient関連のベース例外"""
 
-    pass
-
 
 class AudioExtractionError(WhisperClientError):
     """音声抽出エラー"""
 
-    def __init__(self, message: str, video_path: str, ffmpeg_error: Optional[str] = None):
+    def __init__(self, message: str, video_path: str, ffmpeg_error: str | None = None):
         super().__init__(message)
         self.video_path = video_path
         self.ffmpeg_error = ffmpeg_error
@@ -31,8 +30,8 @@ class WhisperAPIError(WhisperClientError):
     def __init__(
         self,
         message: str,
-        status_code: Optional[int] = None,
-        retry_after: Optional[int] = None,
+        status_code: int | None = None,
+        retry_after: int | None = None,
     ):
         super().__init__(message)
         self.status_code = status_code
@@ -42,7 +41,7 @@ class WhisperAPIError(WhisperClientError):
 class ValidationError(WhisperClientError):
     """レスポンス内容検証エラー"""
 
-    def __init__(self, message: str, field_name: Optional[str] = None):
+    def __init__(self, message: str, field_name: str | None = None):
         super().__init__(message)
         self.field_name = field_name
 
@@ -60,9 +59,10 @@ class WhisperClient:
         セグメント数: 15
         >>> print(f"全体テキスト長: {len(result.full_text)}")
         全体テキスト長: 1250
+
     """
 
-    def __init__(self, api_key: str, model: str = "whisper-1", temp_dir: Optional[str] = None) -> None:
+    def __init__(self, api_key: str, model: str = "whisper-1", temp_dir: str | None = None) -> None:
         """WhisperClientを初期化
 
         Args:
@@ -73,6 +73,7 @@ class WhisperClient:
         Raises:
             ValueError: APIキーが無効な場合
             OSError: 一時ディレクトリの作成に失敗した場合
+
         """
         if not api_key or not api_key.strip():
             raise ValueError("APIキーが指定されていません")
@@ -103,6 +104,7 @@ class WhisperClient:
             AudioExtractionError: 音声抽出に失敗した場合
             WhisperAPIError: Whisper API呼び出しに失敗した場合
             ValidationError: レスポンス内容が期待する形式でない場合
+
         """
         self._validate_video_file(video_path)
 
@@ -147,6 +149,7 @@ class WhisperClient:
 
         Raises:
             AudioExtractionError: 音声抽出に失敗した場合
+
         """
         try:
             video_name = Path(video_path).stem
@@ -186,11 +189,11 @@ class WhisperClient:
                 f"ffmpegによる音声抽出に失敗しました: {error_message}",
                 video_path,
                 ffmpeg_error=error_message,
-            )
+            ) from e
         except Exception as e:
-            raise AudioExtractionError(f"音声抽出中に予期しないエラーが発生しました: {str(e)}", video_path)
+            raise AudioExtractionError(f"音声抽出中に予期しないエラーが発生しました: {e!s}", video_path) from e
 
-    def _call_whisper_api(self, audio_path: str, max_retries: int = 3) -> Dict[str, Any]:
+    def _call_whisper_api(self, audio_path: str, max_retries: int = 3) -> dict[str, Any]:
         """リトライ機能付きWhisper API呼び出し
 
         Args:
@@ -202,6 +205,7 @@ class WhisperClient:
 
         Raises:
             WhisperAPIError: API呼び出しに失敗した場合
+
         """
         last_exception = None
 
@@ -220,7 +224,7 @@ class WhisperClient:
             except Exception as e:
                 last_exception = e
 
-                if hasattr(e, "status_code") and getattr(e, "status_code") == 429:
+                if hasattr(e, "status_code") and e.status_code == 429:
                     retry_after = getattr(e, "retry_after", 60)
                     if attempt < max_retries - 1:
                         time.sleep(retry_after)
@@ -229,9 +233,9 @@ class WhisperClient:
                 if attempt < max_retries - 1:
                     time.sleep(2**attempt)
 
-        raise WhisperAPIError(f"Whisper API呼び出しが{max_retries}回失敗しました: {str(last_exception)}")
+        raise WhisperAPIError(f"Whisper API呼び出しが{max_retries}回失敗しました: {last_exception!s}")
 
-    def _validate_response_data(self, data: Dict[str, Any]) -> None:
+    def _validate_response_data(self, data: dict[str, Any]) -> None:
         """レスポンスデータの検証
 
         Args:
@@ -239,6 +243,7 @@ class WhisperClient:
 
         Raises:
             ValidationError: レスポンス内容が期待する形式でない場合
+
         """
         if "text" not in data:
             raise ValidationError("レスポンスに'text'フィールドがありません")
@@ -258,7 +263,7 @@ class WhisperClient:
                         field_name=field,
                     )
 
-    def _convert_to_transcription_result(self, data: Dict[str, Any]) -> TranscriptionResult:
+    def _convert_to_transcription_result(self, data: dict[str, Any]) -> TranscriptionResult:
         """APIレスポンスをTranscriptionResultオブジェクトに変換
 
         Args:
@@ -266,6 +271,7 @@ class WhisperClient:
 
         Returns:
             TranscriptionResult オブジェクト
+
         """
         segments = []
         for segment_data in data["segments"]:
@@ -283,6 +289,7 @@ class WhisperClient:
 
         Args:
             *file_paths: クリーンアップ対象のファイルパス
+
         """
         for file_path in file_paths:
             try:

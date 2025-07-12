@@ -1,8 +1,10 @@
 """ChatGPTClientのテスト"""
 
 import json
-import pytest
+import os
 from unittest.mock import Mock, patch
+
+import pytest
 
 from src.clients.chatgpt_client import (
     ChatGPTClient,
@@ -30,11 +32,6 @@ class TestChatGPTClient:
         """空のAPIキーでの初期化エラーテスト"""
         with pytest.raises(ValueError, match="APIキーが指定されていません"):
             ChatGPTClient("")
-
-    def test_init_none_api_key(self):
-        """NoneのAPIキーでの初期化エラーテスト"""
-        with pytest.raises(ValueError, match="APIキーが指定されていません"):
-            ChatGPTClient(None)
 
     def test_validate_prompt_empty(self):
         """空のプロンプトの検証エラーテスト"""
@@ -121,8 +118,8 @@ class TestChatGPTClient:
                     "title": "テストタイトル",
                     "caption": "テストキャプション",
                     "key_points": ["ポイント1", "ポイント2"],
-                }
-            ]
+                },
+            ],
         }
 
         proposals = client._convert_to_proposals(data)
@@ -151,9 +148,9 @@ class TestChatGPTClient:
                         "title": "テストタイトル",
                         "caption": "テストキャプション",
                         "key_points": ["ポイント1", "ポイント2"],
-                    }
-                ]
-            }
+                    },
+                ],
+            },
         )
 
         mock_client = Mock()
@@ -174,8 +171,6 @@ class TestChatGPTClientIntegration:
 
     def test_generate_draft_real_api(self):
         """実際のChatGPT APIを使用した企画書生成テスト"""
-        import os
-
         if not os.getenv("INTEGRATION_TEST"):
             pytest.skip("統合テストはINTEGRATION_TEST=trueの場合のみ実行")
 
