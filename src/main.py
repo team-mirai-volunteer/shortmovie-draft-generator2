@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from src.builders.prompt_builder import PromptBuilder
 from src.clients.chatgpt_client import ChatGPTClient
 from src.clients.google_drive_client import GoogleDriveClient
+from src.clients.slack_client import SlackClient
 from src.clients.whisper_client import WhisperClient
 from src.models.result import GenerateResult
 from src.service.draft_generator import DraftGenerator
@@ -41,6 +42,10 @@ class DIContainer:
         self.input_drive_folder = os.getenv("INPUT_DRIVE_FOLDER") or os.getenv("GOOGLE_DRIVE_SOURCE_FOLDER_URL")
         self.output_drive_folder = os.getenv("OUTPUT_DRIVE_FOLDER") or os.getenv("GOOGLE_DRIVE_DESTINATION_FOLDER_URL")
 
+        # Slack通知設定（オプショナル）
+        self.slack_webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+        self.slack_notifications_enabled = os.getenv("SLACK_NOTIFICATIONS_ENABLED", "false").lower() == "true"
+
         self.whisper_client = WhisperClient(api_key=self.openai_api_key, model=self.whisper_model)
 
         self.chatgpt_client = ChatGPTClient(api_key=self.openai_api_key, model=self.chatgpt_model)
@@ -58,6 +63,11 @@ class DIContainer:
 
         self.srt_generator = SrtGenerator()
 
+        # SlackClientの初期化（WebHook URLが設定されている場合のみ）
+        self.slack_client = None
+        if self.slack_webhook_url and self.slack_notifications_enabled:
+            self.slack_client = SlackClient(self.slack_webhook_url)
+
         # 新しいUsecaseの初期化
         self.video_to_transcript_usecase = VideoToTranscriptUsecase(whisper_client=self.whisper_client)
 
@@ -65,11 +75,12 @@ class DIContainer:
             chatgpt_client=self.chatgpt_client, prompt_builder=self.prompt_builder, srt_generator=self.srt_generator
         )
 
-        # リファクタリング後のGoogleDriveBatchProcessUsecase
+        # リファクタリング後のGoogleDriveBatchProcessUsecase（Slack通知対応）
         self.google_drive_batch_usecase = GoogleDriveBatchProcessUsecase(
             video_to_transcript_usecase=self.video_to_transcript_usecase,
             transcript_to_draft_usecase=self.transcript_to_draft_usecase,
             google_drive_client=self.google_drive_client,
+            slack_client=self.slack_client,  # 新規追加
         )
 
     def _get_required_env(self, key: str) -> str:
