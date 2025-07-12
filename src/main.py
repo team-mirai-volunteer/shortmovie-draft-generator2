@@ -38,8 +38,8 @@ class DIContainer:
         self.google_drive_upload_folder_id = os.getenv("GOOGLE_DRIVE_UPLOAD_FOLDER_ID")
 
         # Google Driveバッチ処理用（新規追加）
-        self.input_drive_folder = os.getenv("INPUT_DRIVE_FOLDER")
-        self.output_drive_folder = os.getenv("OUTPUT_DRIVE_FOLDER")
+        self.input_drive_folder = os.getenv("INPUT_DRIVE_FOLDER") or os.getenv("GOOGLE_DRIVE_SOURCE_FOLDER_URL")
+        self.output_drive_folder = os.getenv("OUTPUT_DRIVE_FOLDER") or os.getenv("GOOGLE_DRIVE_DESTINATION_FOLDER_URL")
 
         self.whisper_client = WhisperClient(api_key=self.openai_api_key, model=self.whisper_model)
 
@@ -152,8 +152,8 @@ def main(
         # 環境変数を最初に読み込み
         load_dotenv()
         if drive_batch:
-            input_folder = input_drive_folder or os.getenv("INPUT_DRIVE_FOLDER")
-            output_folder = output_drive_folder or os.getenv("OUTPUT_DRIVE_FOLDER")
+            input_folder = input_drive_folder or os.getenv("INPUT_DRIVE_FOLDER") or os.getenv("GOOGLE_DRIVE_SOURCE_FOLDER_URL")
+            output_folder = output_drive_folder or os.getenv("OUTPUT_DRIVE_FOLDER") or os.getenv("GOOGLE_DRIVE_DESTINATION_FOLDER_URL")
 
             if not input_folder or not output_folder:
                 click.echo("❌ Google Driveバッチ処理には --input-drive-folder と --output-drive-folder オプション、または環境変数の設定が必要です", err=True)

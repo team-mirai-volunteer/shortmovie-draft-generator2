@@ -2,6 +2,7 @@
 
 import json
 import mimetypes
+import re
 from pathlib import Path
 from typing import Any
 
@@ -134,7 +135,7 @@ class GoogleDriveClient:
         """フォルダURLからフォルダIDを抽出
 
         Args:
-            folder_url: Google DriveフォルダURL
+            folder_url: Google DriveフォルダURLまたはフォルダID
 
         Returns:
             抽出されたフォルダID
@@ -143,23 +144,27 @@ class GoogleDriveClient:
             FolderAccessError: 無効なURLの場合
 
         """
-        try:
-            if "/folders/" in folder_url:
-                # URLを分解してIDを抽出
-                parts = folder_url.split("/folders/")[1]
+        # 空の値チェック
+        if not folder_url:
+            raise FolderAccessError("フォルダURLまたはIDが指定されていません", folder_url)
 
-                # ?やその他のパラメータを除去
-                folder_id = parts.split("?")[0].split("/")[0].split("#")[0]
+        # Google DriveのフォルダURLパターン
+        patterns = [
+            r"https://drive\.google\.com/drive/folders/([a-zA-Z0-9_-]+)",
+            r"https://drive\.google\.com/drive/u/\d+/folders/([a-zA-Z0-9_-]+)",
+        ]
 
-                # IDの妥当性チェック（Google DriveのIDは通常33文字程度）
-                if len(folder_id) < 20 or len(folder_id) > 50:
-                    raise FolderAccessError(f"抽出されたフォルダIDが無効です: {folder_id} (長さ: {len(folder_id)})", folder_url)
+        for pattern in patterns:
+            match = re.match(pattern, folder_url)
+            if match:
+                return match.group(1)
 
-                return folder_id
-            else:
-                raise FolderAccessError(f"無効なGoogle DriveフォルダURLです: {folder_url}", folder_url)
-        except Exception as e:
-            raise FolderAccessError(f"フォルダIDの抽出に失敗しました: {e!s}", folder_url) from e
+        # URLでない場合はそのままIDとして扱う
+        # Google DriveのフォルダIDは英数字、ハイフン、アンダースコアを含む
+        if re.match(r"^[a-zA-Z0-9_-]+$", folder_url):
+            return folder_url
+
+        raise FolderAccessError(f"無効なフォルダURLまたはID: {folder_url}", folder_url)
 
     def list_files(self, folder_url: str) -> DriveFolder:
         """共有フォルダのファイル一覧を取得
