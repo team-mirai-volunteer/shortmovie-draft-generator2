@@ -172,6 +172,52 @@ uv run python src/main.py "https://drive.google.com/drive/folders/abc123" output
 uv run python src/main.py input/video.mp4 output/ --upload --upload-folder-id "folder_id"
 ```
 
+## デバッグ・開発用ツール
+
+### TranscriptToDraftUsecase デバッグスクリプト
+
+既存の文字起こしファイル（transcript.json）から企画書と字幕ファイルを生成するデバッグ用スクリプトです。
+文字起こし処理をスキップして、企画書生成部分のみをテストできます。
+
+#### 基本的な使用方法
+
+```bash
+# サンプルファイルを使用してテスト
+python debug_transcript_to_draft.py intermediate/sample_transcript.json output/
+
+# 詳細ログ付きで実行
+python debug_transcript_to_draft.py intermediate/sample_transcript.json output/ --verbose
+
+# 既存のtranscript.jsonファイルを使用
+python debug_transcript_to_draft.py intermediate/your_video_transcript.json output/
+```
+
+#### 使用例
+
+```bash
+# サンプルファイルでテスト実行
+$ python debug_transcript_to_draft.py intermediate/sample_transcript.json output/ -v
+=== TranscriptToDraftUsecase デバッグスクリプト ===
+入力ファイル: intermediate/sample_transcript.json
+出力ディレクトリ: output
+
+🔧 TranscriptToDraftUsecaseを初期化中...
+✓ 初期化完了
+📝 企画書生成を開始します...
+🎉 企画書生成が正常に完了しました！
+
+生成されたファイル:
+  📄 企画書: output/sample_video_draft.md
+  📝 字幕: output/sample_video_subtitle.srt
+```
+
+#### メリット
+
+- **高速テスト**: 文字起こし処理（時間がかかる）をスキップ
+- **企画書生成のデバッグ**: ChatGPT APIの応答やプロンプトの調整をテスト
+- **文字起こし結果の修正**: transcript.jsonを手動編集して再実行可能
+- **開発効率向上**: 企画書生成ロジックの改善時に便利
+
 ## 開発
 
 ### テスト実行
