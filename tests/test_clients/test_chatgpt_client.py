@@ -12,6 +12,7 @@ from src.clients.chatgpt_client import (
     ValidationError,
 )
 from src.models.draft import ShortVideoProposal
+from src.models.hooks import HookItem
 
 
 class TestChatGPTClient:
@@ -66,30 +67,30 @@ class TestChatGPTClient:
         with pytest.raises(JSONParseError):
             client._parse_json_response("invalid json")
 
-    def test_validate_response_structure_missing_items(self):
+    def test_validate_hooks_response_structure_missing_items(self):
         """itemsフィールドが欠けているレスポンスの検証エラーテスト"""
         client = ChatGPTClient("test-api-key")
         with pytest.raises(ValidationError, match="'items'フィールドがありません"):
-            client._validate_response_structure({})
+            client._validate_hooks_response_structure({})
 
-    def test_validate_response_structure_items_not_list(self):
+    def test_validate_hooks_response_structure_items_not_list(self):
         """itemsがリストでないレスポンスの検証エラーテスト"""
         client = ChatGPTClient("test-api-key")
         with pytest.raises(ValidationError, match="'items'フィールドがリスト形式ではありません"):
-            client._validate_response_structure({"items": "not a list"})
+            client._validate_hooks_response_structure({"items": "not a list"})
 
-    def test_validate_response_structure_empty_items(self):
+    def test_validate_hooks_response_structure_empty_items(self):
         """空のitemsの検証エラーテスト"""
         client = ChatGPTClient("test-api-key")
         with pytest.raises(ValidationError, match="'items'が空です"):
-            client._validate_response_structure({"items": []})
+            client._validate_hooks_response_structure({"items": []})
 
-    def test_validate_response_structure_missing_required_field(self):
+    def test_validate_hooks_response_structure_missing_required_field(self):
         """必須フィールドが欠けているアイテムの検証エラーテスト"""
         client = ChatGPTClient("test-api-key")
         data = {"items": [{"title": "test"}]}
         with pytest.raises(ValidationError, match="必須フィールド"):
-            client._validate_response_structure(data)
+            client._validate_hooks_response_structure(data)
 
     def test_parse_time_to_seconds_success(self):
         """正常な時刻解析のテスト"""
@@ -104,50 +105,42 @@ class TestChatGPTClient:
         with pytest.raises(ValueError, match="時刻形式が無効です"):
             client._parse_time_to_seconds("invalid")
 
-    def test_convert_to_proposals_success(self):
-        """正常な企画提案変換のテスト"""
+    def test_convert_to_hook_items_success(self):
+        """正常なフック変換のテスト"""
         client = ChatGPTClient("test-api-key")
         data = {
             "items": [
                 {
-                    "first_impact": "インパクト",
+                    "first_hook": "最初のフック",
+                    "second_hook": "2番目のフック",
+                    "third_hook": "3番目のフック",
                     "last_conclusion": "結論",
                     "summary": "要約",
-                    "time_start": "00:00:30",
-                    "time_end": "00:01:30",
-                    "title": "テストタイトル",
-                    "caption": "テストキャプション",
-                    "key_points": ["ポイント1", "ポイント2"],
                 },
             ],
         }
 
-        proposals = client._convert_to_proposals(data)
-        assert len(proposals) == 1
-        assert isinstance(proposals[0], ShortVideoProposal)
-        assert proposals[0].title == "テストタイトル"
-        assert proposals[0].start_time == 30.0
-        assert proposals[0].end_time == 90.0
-        assert proposals[0].caption == "テストキャプション"
-        assert proposals[0].key_points == ["ポイント1", "ポイント2"]
+        hook_items = client._convert_to_hook_items(data)
+        assert len(hook_items) == 1
+        assert isinstance(hook_items[0], HookItem)
+        assert hook_items[0].first_hook == "最初のフック"
+        assert hook_items[0].second_hook == "2番目のフック"
+        assert hook_items[0].summary == "要約"
 
     @patch("src.clients.chatgpt_client.OpenAI")
-    def test_generate_draft_success(self, mock_openai):
-        """正常な企画書生成のテスト"""
+    def test_extract_hooks_success(self, mock_openai):
+        """正常なフック抽出のテスト"""
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message.content = json.dumps(
             {
                 "items": [
                     {
-                        "first_impact": "インパクト",
+                        "first_hook": "最初のフック",
+                        "second_hook": "2番目のフック",
+                        "third_hook": "3番目のフック",
                         "last_conclusion": "結論",
                         "summary": "要約",
-                        "time_start": "00:00:30",
-                        "time_end": "00:01:30",
-                        "title": "テストタイトル",
-                        "caption": "テストキャプション",
-                        "key_points": ["ポイント1", "ポイント2"],
                     },
                 ],
             },
@@ -158,10 +151,10 @@ class TestChatGPTClient:
         mock_openai.return_value = mock_client
 
         client = ChatGPTClient("test-api-key")
-        proposals = client.generate_draft("test prompt")
+        hook_items = client.extract_hooks("test prompt")
 
-        assert len(proposals) == 1
-        assert proposals[0].title == "テストタイトル"
+        assert len(hook_items) == 1
+        assert hook_items[0].first_hook == "最初のフック"
         mock_client.chat.completions.create.assert_called_once()
 
 
@@ -169,7 +162,7 @@ class TestChatGPTClient:
 class TestChatGPTClientIntegration:
     """ChatGPTClientの統合テスト（実際のAPI呼び出し）"""
 
-    def test_generate_draft_real_api(self):
+    def test_extract_hooks_real_api(self):
         """実際のChatGPT APIを使用した企画書生成テスト"""
         if not os.getenv("INTEGRATION_TEST"):
             pytest.skip("統合テストはINTEGRATION_TEST=trueの場合のみ実行")
@@ -208,7 +201,7 @@ class TestChatGPTClientIntegration:
         }
         """
 
-        proposals = client.generate_draft(test_prompt)
+        proposals = client.extract_hooks(test_prompt)
 
         assert len(proposals) > 0
         assert isinstance(proposals[0], ShortVideoProposal)
