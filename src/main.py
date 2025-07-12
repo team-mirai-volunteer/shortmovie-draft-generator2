@@ -15,6 +15,8 @@ from src.service.draft_generator import DraftGenerator
 from src.service.srt_generator import SrtGenerator
 from src.usecases.generate_short_draft_usecase import GenerateShortDraftUsecase
 from src.usecases.google_drive_batch_process_usecase import GoogleDriveBatchProcessUsecase
+from src.usecases.transcript_to_draft_usecase import TranscriptToDraftUsecase
+from src.usecases.video_to_transcript_usecase import VideoToTranscriptUsecase
 
 
 class DIContainer:
@@ -57,6 +59,18 @@ class DIContainer:
 
         self.srt_generator = SrtGenerator()
 
+        # 新しいUsecaseの初期化
+        self.video_to_transcript_usecase = VideoToTranscriptUsecase(
+            whisper_client=self.whisper_client
+        )
+
+        self.transcript_to_draft_usecase = TranscriptToDraftUsecase(
+            chatgpt_client=self.chatgpt_client,
+            prompt_builder=self.prompt_builder,
+            srt_generator=self.srt_generator
+        )
+
+        # 既存のGenerateShortDraftUsecaseは後方互換性のため維持
         self.generate_usecase = GenerateShortDraftUsecase(
             draft_generator=self.draft_generator,
             srt_generator=self.srt_generator,
@@ -65,8 +79,10 @@ class DIContainer:
             upload_folder_id=self.google_drive_upload_folder_id,
         )
 
+        # リファクタリング後のGoogleDriveBatchProcessUsecase
         self.google_drive_batch_usecase = GoogleDriveBatchProcessUsecase(
-            generate_usecase=self.generate_usecase,
+            video_to_transcript_usecase=self.video_to_transcript_usecase,
+            transcript_to_draft_usecase=self.transcript_to_draft_usecase,
             google_drive_client=self.google_drive_client,
         )
 
@@ -209,6 +225,8 @@ def main(
                     click.echo(f"📄 企画書: {batch_result.draft_url}")
                     click.echo(f"📝 字幕: {batch_result.subtitle_url}")
                     click.echo(f"🎥 動画: {batch_result.video_url}")
+                    if batch_result.transcript_url:
+                        click.echo(f"📋 文字起こし: {batch_result.transcript_url}")
                 else:
                     click.echo("ℹ️ 処理対象の動画がありませんでした")
             else:

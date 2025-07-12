@@ -46,6 +46,7 @@ class GoogleDriveBatchResult:
     draft_url: str | None = None
     subtitle_url: str | None = None
     video_url: str | None = None
+    transcript_url: str | None = None  # 文字起こしファイルのURL（デバッグ用）
     message: str | None = None
     error_message: str | None = None
 
