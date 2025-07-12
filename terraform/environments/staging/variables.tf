@@ -42,12 +42,6 @@ variable "timeout_seconds" {
   default     = 3600
 }
 
-variable "schedule" {
-  description = "Cron schedule expression (every hour by default)"
-  type        = string
-  default     = "0 * * * *"
-}
-
 variable "time_zone" {
   description = "Time zone for the scheduler"
   type        = string
