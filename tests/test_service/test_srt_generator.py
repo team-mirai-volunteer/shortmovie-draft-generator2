@@ -1,11 +1,12 @@
 """SrtGeneratorのテスト"""
 
 import os  # noqa: F401
-import pytest
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
-from src.service.srt_generator import SrtGenerator, SrtGenerationError
+import pytest
+
 from src.models.transcription import TranscriptionResult, TranscriptionSegment
+from src.service.srt_generator import SrtGenerationError, SrtGenerator
 
 
 class TestSrtGenerator:
@@ -54,16 +55,12 @@ class TestSrtGenerator:
     @patch("os.makedirs")
     @patch("os.path.exists")
     @patch("os.path.dirname")
-    def test_generate_srt_file_success(
-        self, mock_dirname, mock_exists, mock_makedirs, mock_file
-    ):
+    def test_generate_srt_file_success(self, mock_dirname, mock_exists, mock_makedirs, mock_file):
         """SRTファイル生成成功のテスト"""
         mock_dirname.return_value = "output"
         mock_exists.return_value = True
 
-        result = self.generator.generate_srt_file(
-            self.sample_transcription, "output/subtitle.srt"
-        )
+        result = self.generator.generate_srt_file(self.sample_transcription, "output/subtitle.srt")
 
         assert result == "output/subtitle.srt"
         mock_file.assert_called_once_with("output/subtitle.srt", "w", encoding="utf-8")
@@ -77,16 +74,12 @@ class TestSrtGenerator:
     @patch("os.makedirs")
     @patch("os.path.exists")
     @patch("os.path.dirname")
-    def test_generate_srt_file_create_directory(
-        self, mock_dirname, mock_exists, mock_makedirs, mock_file
-    ):
+    def test_generate_srt_file_create_directory(self, mock_dirname, mock_exists, mock_makedirs, mock_file):
         """出力ディレクトリが存在しない場合のテスト"""
         mock_dirname.return_value = "output"
         mock_exists.return_value = False
 
-        result = self.generator.generate_srt_file(
-            self.sample_transcription, "output/subtitle.srt"
-        )
+        result = self.generator.generate_srt_file(self.sample_transcription, "output/subtitle.srt")
 
         assert result == "output/subtitle.srt"
         mock_makedirs.assert_called_once_with("output", exist_ok=True)
@@ -95,12 +88,10 @@ class TestSrtGenerator:
     @patch("builtins.open")
     def test_generate_srt_file_error(self, mock_open):
         """ファイル生成エラーのテスト"""
-        mock_open.side_effect = IOError("テストエラー")
+        mock_open.side_effect = OSError("テストエラー")
 
         with pytest.raises(SrtGenerationError) as excinfo:
-            self.generator.generate_srt_file(
-                self.sample_transcription, "output/subtitle.srt"
-            )
+            self.generator.generate_srt_file(self.sample_transcription, "output/subtitle.srt")
 
         assert "字幕ファイルの生成に失敗しました" in str(excinfo.value)
         assert "テストエラー" in str(excinfo.value)

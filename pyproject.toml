@@ -1,40 +1,46 @@
-[tool.poetry]
+[project]
 name = "shortmovie-draft-generator2"
 version = "0.1.0"
 description = "ショート動画設計図生成プロジェクト"
-authors = ["Your Name <your.email@example.com>"]
+authors = [{ name = "Your Name", email = "your.email@example.com" }]
+requires-python = ">=3.10"
 readme = "README.md"
-packages = [{include = "src"}]
+dependencies = [
+    "openai>=1.0.0,<2",
+    "python-dotenv>=1.0.0,<2",
+    "click>=8.0.0,<9",
+    "ffmpeg-python>=0.2.0,<0.3",
+    "requests>=2.31.0,<3",
+    "google-auth>=2.23.0,<3",
+    "google-auth-oauthlib>=1.1.0,<2",
+    "google-auth-httplib2>=0.2.0,<0.3",
+    "google-api-python-client>=2.100.0,<3",
+]
 
-[tool.poetry.scripts]
+[project.scripts]
 shortmovie-draft-generator = "src.main:main"
 
-[tool.poetry.dependencies]
-python = "^3.9"
-openai = "^1.0.0"
-python-dotenv = "^1.0.0"
-click = "^8.0.0"
-ffmpeg-python = "^0.2.0"
-requests = "^2.31.0"
-google-auth = "^2.23.0"
-google-auth-oauthlib = "^1.1.0"
-google-auth-httplib2 = "^0.2.0"
-google-api-python-client = "^2.100.0"
+[dependency-groups]
+dev = [
+    "mypy>=1.0.0,<2",
+    "pytest>=7.0.0,<8",
+    "pytest-cov>=4.0.0,<5",
+    "types-requests>=2.32.4.20250611,<3",
+    "ruff>=0.12.3",
+]
 
-[tool.poetry.group.dev.dependencies]
-mypy = "^1.0.0"
-pytest = "^7.0.0"
-black = "^23.0.0"
-flake8 = "^6.0.0"
-pytest-cov = "^4.0.0"
-types-requests = "^2.32.4.20250611"
+[tool.hatch.build.targets.sdist]
+include = ["src"]
+
+[tool.hatch.build.targets.wheel]
+include = ["src"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -65,27 +71,74 @@ module = [
 ]
 ignore_missing_imports = true
 
-[tool.black]
+[tool.ruff]
 line-length = 160
-target-version = ['py38']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
+target-version = "py313"
 
-[tool.flake8]
-max-line-length = 160
-extend-ignore = ["E203", "W503"]
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "D",      # pydocstyle
+    "UP",     # pyupgrade
+    "YTT",    # flake8-2020
+    "ASYNC",  # flake8-async
+    "S",      # flake8-bandit
+    "B",      # flake8-bugbear
+    "COM",    # flake8-commas
+    "C4",     # flake8-comprehensions
+    "DTZ",    # flake8-datetimez
+    "T10",    # flake8-debugger
+    "EXE",    # flake8-executable
+    "ISC",    # flake8-implicit-str-concat
+    "ICN",    # flake8-import-conventions
+    "G010",   # flake8-logging-format
+    "T20",    # flake8-print
+    "PIE",    # flake8-pie
+    "RSE",    # flake8-raise
+    "SIM",    # flake8-simplify
+    "SLOT",   # flake8-slots
+    "INT",    # flake8-gettext
+    "PD",     # pandas-vet
+    "PL",     # Pylint
+    "NPY",    # NumPy-specific rules
+    "PT",     # flake8-pytest-style
+    "RUF",    # Ruff-specific rules
+    "FURB",   # refurb
+    "PGH",    # pygrep-hooks
+]
+ignore = [
+    "E203",
+    "S101",
+    "D104",
+    "D107",
+    "D203",
+    "D213",
+    "D400",
+    "D401",
+    "D415",
+    "T201",  # print
+    "S108",  # /tmp
+    "COM812",
+    "PLR2004",
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    "RUF005",
+    "PT011",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "PT006",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

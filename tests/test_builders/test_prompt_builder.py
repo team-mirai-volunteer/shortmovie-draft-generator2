@@ -1,6 +1,7 @@
 """prompt_builder.pyのテスト"""
 
 import pytest
+
 from src.builders.prompt_builder import PromptBuilder
 from src.models.transcription import TranscriptionResult, TranscriptionSegment
 
@@ -13,19 +14,19 @@ class TestPromptBuilder:
         builder = PromptBuilder()
         assert builder is not None
 
-    def test_build_draft_prompt_basic(self):
+    def test_build_hooks_prompt_basic(self):
         """基本的なプロンプト生成テスト"""
         segments = [TranscriptionSegment(0.0, 10.0, "テスト内容")]
         transcription = TranscriptionResult(segments, "テスト内容")
         builder = PromptBuilder()
 
-        prompt = builder.build_draft_prompt(transcription)
+        prompt = builder.build_hooks_prompt(transcription)
 
         assert isinstance(prompt, str)
         assert len(prompt) > 0
         assert "テスト内容" in prompt
-        assert "json形式" in prompt
-        assert "first_impact" in prompt
+        assert "出力フォーマット" in prompt
+        assert "first_hook" in prompt
 
     def test_prompt_contains_best_practices(self):
         """プロンプトにベストプラクティスが含まれているかテスト"""
@@ -33,11 +34,11 @@ class TestPromptBuilder:
         transcription = TranscriptionResult(segments, "テスト")
         builder = PromptBuilder()
 
-        prompt = builder.build_draft_prompt(transcription)
+        prompt = builder.build_hooks_prompt(transcription)
 
-        assert "冒頭2秒でインパクト" in prompt
-        assert "視聴時間をハック" in prompt
-        assert "最初の接点" in prompt
+        assert "フックを作るための TIPS" in prompt
+        assert "ショート動画バズのコツ" in prompt
+        assert "驚きで惹きつける（Surprise）" in prompt
 
     def test_validation_empty_segments(self):
         """空のセグメントでのバリデーションテスト"""
@@ -45,7 +46,7 @@ class TestPromptBuilder:
         builder = PromptBuilder()
 
         with pytest.raises(ValueError) as exc_info:
-            builder.build_draft_prompt(transcription)
+            builder.build_hooks_prompt(transcription)
         assert "セグメントが空です" in str(exc_info.value)
 
     def test_validation_empty_full_text(self):
@@ -55,7 +56,7 @@ class TestPromptBuilder:
         builder = PromptBuilder()
 
         with pytest.raises(ValueError) as exc_info:
-            builder.build_draft_prompt(transcription)
+            builder.build_hooks_prompt(transcription)
         assert "全体テキストが空です" in str(exc_info.value)
 
     def test_validation_whitespace_only_full_text(self):
@@ -65,7 +66,7 @@ class TestPromptBuilder:
         builder = PromptBuilder()
 
         with pytest.raises(ValueError) as exc_info:
-            builder.build_draft_prompt(transcription)
+            builder.build_hooks_prompt(transcription)
         assert "全体テキストが空です" in str(exc_info.value)
 
     def test_string_representation(self):
@@ -80,7 +81,7 @@ class TestPromptBuilder:
         transcription = TranscriptionResult(segments, "テスト")
         builder = PromptBuilder()
 
-        prompt = builder.build_draft_prompt(transcription)
+        prompt = builder.build_hooks_prompt(transcription)
         assert isinstance(prompt, str)
 
 
@@ -165,7 +166,7 @@ class TestSampleData:
 
     def test_short_video_sample_data(self):
         """ショート動画向けサンプルデータでのテスト"""
-        SHORT_VIDEO_SEGMENTS = [
+        short_video_segments = [
             TranscriptionSegment(0.0, 5.0, "皆さん、これ知ってました？実は..."),
             TranscriptionSegment(5.0, 15.0, "今日お話しするのは、誰も教えてくれない秘密の方法です"),
             TranscriptionSegment(15.0, 30.0, "まず最初のポイントは、タイミングが全てということ"),
@@ -173,13 +174,15 @@ class TestSampleData:
             TranscriptionSegment(45.0, 60.0, "最後に、これを実践すれば必ず結果が出ます"),
         ]
 
-        SHORT_VIDEO_TRANSCRIPTION = TranscriptionResult(
-            segments=SHORT_VIDEO_SEGMENTS,
-            full_text=("皆さん、これ知ってました？実は...今日お話しするのは、誰も教えてくれない秘密の方法です。" "まず最初のポイントは、タイミングが全てということ。次に重要なのは、相手の心理を理解すること。" "最後に、これを実践すれば必ず結果が出ます。"),
+        short_video_transcription = TranscriptionResult(
+            segments=short_video_segments,
+            full_text=(
+                "皆さん、これ知ってました？実は...今日お話しするのは、誰も教えてくれない秘密の方法です。まず最初のポイントは、タイミングが全てということ。次に重要なのは、相手の心理を理解すること。最後に、これを実践すれば必ず結果が出ます。"
+            ),
         )
 
         builder = PromptBuilder()
-        prompt = builder.build_draft_prompt(SHORT_VIDEO_TRANSCRIPTION)
+        prompt = builder.build_hooks_prompt(short_video_transcription)
 
         assert isinstance(prompt, str)
         assert len(prompt) > 0
@@ -192,9 +195,9 @@ class TestSampleData:
         assert "[00:00:05 - 00:00:15]" in prompt
         assert "[00:00:45 - 00:01:00]" in prompt
 
-        assert "冒頭2秒でインパクト" in prompt
-        assert "視聴時間をハック" in prompt
-        assert "JSON形式以外の出力は一切含めず" in prompt
+        assert "フックを作るための TIPS" in prompt
+        assert "ショート動画バズのコツ" in prompt
+        assert "出力フォーマット" in prompt
 
     def test_realistic_usage_pattern(self):
         """実際の使用パターンに近いテスト"""
@@ -211,7 +214,7 @@ class TestSampleData:
         transcription = TranscriptionResult(segments=segments, full_text=full_text)
 
         builder = PromptBuilder()
-        prompt = builder.build_draft_prompt(transcription)
+        prompt = builder.build_hooks_prompt(transcription)
 
         assert isinstance(prompt, str)
         assert len(prompt) > 0
@@ -235,7 +238,7 @@ class TestSampleData:
         transcription = TranscriptionResult(segments=segments, full_text="1時間の内容2時間目の内容")
 
         builder = PromptBuilder()
-        prompt = builder.build_draft_prompt(transcription)
+        prompt = builder.build_hooks_prompt(transcription)
 
         assert "[01:00:00 - 02:00:00]" in prompt
         assert "[00:00:00 - 01:00:00]" in prompt
@@ -246,30 +249,26 @@ class TestSampleData:
         transcription = TranscriptionResult(segments, "テスト")
         builder = PromptBuilder()
 
-        prompt = builder.build_draft_prompt(transcription)
+        prompt = builder.build_hooks_prompt(transcription)
 
         required_sections = [
             "# 依頼内容",
             "# 動画書き起こし",
             "## 全体テキスト",
             "## タイムスタンプ付きセグメント",
-            "# 次の点をjson形式で",
-            "## 冒頭2秒でインパクトを出す",
-            "## 視聴時間をハックする",
+            "# 出力フォーマット",
+            "# フックを作るための TIPS",
         ]
 
         for section in required_sections:
             assert section in prompt
 
         required_json_fields = [
-            "first_impact",
+            "first_hook",
+            "second_hook",
+            "third_hook",
             "last_conclusion",
             "summary",
-            "time_start",
-            "time_end",
-            "title",
-            "caption",
-            "key_points",
         ]
 
         for field in required_json_fields:

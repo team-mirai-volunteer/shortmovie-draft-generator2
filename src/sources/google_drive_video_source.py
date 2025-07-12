@@ -1,6 +1,5 @@
 """Google Drive動画ソースの実装"""
 
-from typing import Optional
 from ..clients.google_drive_client import GoogleDriveClient, NoVideoFileError
 
 
@@ -13,13 +12,11 @@ class GoogleDriveVideoSource:
     Example:
         >>> from ..clients.google_drive_client import GoogleDriveClient
         >>> client = GoogleDriveClient()
-        >>> source = GoogleDriveVideoSource(
-        ...     "https://drive.google.com/drive/folders/abc123?usp=sharing",
-        ...     client
-        ... )
+        >>> source = GoogleDriveVideoSource("https://drive.google.com/drive/folders/abc123?usp=sharing", client)
         >>> path = source.get_video_path("output/")
         >>> print(f"ダウンロード済み動画: {path}")
         ダウンロード済み動画: output/sample_video.mp4
+
     """
 
     def __init__(self, folder_url: str, drive_client: GoogleDriveClient):
@@ -28,10 +25,11 @@ class GoogleDriveVideoSource:
         Args:
             folder_url: Google DriveフォルダURL
             drive_client: Google Driveクライアント
+
         """
         self.folder_url = folder_url
         self.drive_client = drive_client
-        self.downloaded_file_path: Optional[str] = None
+        self.downloaded_file_path: str | None = None
 
     def get_video_path(self, output_dir: str) -> str:
         """Google Driveから動画ファイルをダウンロードしてパスを返す
@@ -44,6 +42,7 @@ class GoogleDriveVideoSource:
 
         Raises:
             NoVideoFileError: フォルダ内に動画ファイルが見つからない場合
+
         """
         folder = self.drive_client.list_files(self.folder_url)
 
@@ -62,4 +61,3 @@ class GoogleDriveVideoSource:
 
         現在の要件では削除しないため、何も実行しません。
         """
-        pass
