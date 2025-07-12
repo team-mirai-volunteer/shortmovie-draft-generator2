@@ -23,7 +23,7 @@ module "cloud_build" {
   app_name                          = local.app_name
   github_app_installation_id        = var.github_app_installation_id
   github_oauth_token_secret_version = var.github_oauth_token_secret_version
-  trigger_branch                    = "^develop$"
+  trigger_branch                    = var.trigger_branch
   artifact_registry_repository      = module.artifact_registry.repository_id
 }
 

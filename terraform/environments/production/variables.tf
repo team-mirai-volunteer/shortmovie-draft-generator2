@@ -18,3 +18,8 @@ variable "github_oauth_token_secret_version" {
   description = "Secret Manager version ID for GitHub OAuth token"
   type        = string
 }
+
+variable "trigger_branch" {
+  description = "Branch pattern to trigger Cloud Build"
+  type        = string
+}
